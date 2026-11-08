@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+.sidebar-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+nav a {
+  border-radius: 5px;
+  padding: 6px 0;
+}

@@ -1,0 +1,139 @@
+/* ---------- Override Leaflet's default popup chrome ---------- */
+.report-popup .leaflet-popup-content-wrapper {
+  padding: 16px;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(23, 32, 27, 0.18);
+}
+
+.report-popup .leaflet-popup-content {
+  margin: 0;           /* Leaflet adds its own margin; we use the wrapper padding instead */
+  width: auto !important;
+  line-height: 1.3;
+}
+
+.report-popup .leaflet-popup-close-button {
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 26px;
+  line-height: 28px;
+  font-weight: 300;
+  color: #6b7570;
+}
+
+.report-popup .leaflet-popup-close-button:hover {
+  color: #17201b;
+}
+
+/* ---------- Card content ---------- */
+.rp {
+  font-family: "Public Sans", system-ui, sans-serif;
+  color: #17201b;
+}
+
+.rp__top {
+  display: flex;
+  gap: 16px;
+}
+
+.rp__photo {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.rp__photo--empty {
+  background: #eef0ec;
+}
+
+.rp__info {
+  min-width: 0;
+  padding-right: 28px; /* keeps the title clear of the close button */
+}
+
+.rp__code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  color: #8a938e;
+}
+
+.rp__title {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.rp__place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 16px;
+  color: #6b7570;
+}
+
+/* ---------- Status + time row ---------- */
+.rp__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.rp__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rp__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.rp__status--green { color: #1f7a4d; background: #e8f5ed; border-color: #b9e0c8; }
+.rp__status--amber { color: #94610a; background: #fdf3df; border-color: #f0d9a4; }
+.rp__status--blue  { color: #1f5fa0; background: #e8f1fb; border-color: #b8d3ef; }
+.rp__status--gray  { color: #5b655f; background: #eef0ec; border-color: #d6dad5; }
+
+.rp__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  color: #6b7570;
+}
+
+/* ---------- Open report button ---------- */
+.rp__open {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 15px;
+  border: 0;
+  border-radius: 16px;
+  background: #2f7d57;
+  color: #fff;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rp__open:hover { background: #266a49; }
+.rp__open:focus-visible { outline: 3px solid #9fd3b6; outline-offset: 2px; }

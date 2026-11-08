@@ -1,0 +1,204 @@
+@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap");
+
+/* ---------- Design tokens (change colors here, everything follows) ---------- */
+.analytics {
+  --bg: #ffffff;
+  --card-border: #e6e9e4;
+  --text: #17201b;
+  --muted: #6b7570;
+  --faint: #9aa39e;
+  --track: #eef0ec;
+  --bar: #2f7d57;          /* normal bar */
+  --bar-top: #1d5a40;      /* #1 bar is darker */
+  --badge-bg: #e4f1e8;     /* top-3 rank badge */
+  --badge-text: #1f5c3f;
+  --pill-bg: #eef0ec;
+
+  font-family: "Public Sans", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  padding: 48px 50px 64px;
+}
+
+.analytics__title {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.analytics__subtitle {
+  margin: 12px 0 0;
+  font-size: 17px;
+  color: var(--muted);
+}
+
+/* ---------- Stat cards row ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px;
+  margin-top: 40px;
+}
+
+.stat-card {
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 24px 24px 22px;
+  background: #fff;
+}
+
+.stat-card__label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.stat-card__value {
+  margin: 8px 0 4px;
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.stat-card__note {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* ---------- Ranked panels ---------- */
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.panel {
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  padding: 28px 30px 20px;
+  background: #fff;
+}
+
+.panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.panel__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.panel__sub {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.panel__pill {
+  flex-shrink: 0;
+  background: var(--pill-bg);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3d4640;
+}
+
+/* ---------- One ranked row ---------- */
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rank-row {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  column-gap: 14px;
+  align-items: start;
+  padding: 10px 0;
+}
+
+.rank-row__badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+/* Only the top 3 get the green badge */
+.rank-row--top .rank-row__badge {
+  background: var(--badge-bg);
+  color: var(--badge-text);
+}
+
+.rank-row__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.rank-row__count {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rank-row__percent {
+  margin-left: 8px;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.rank-row__track {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.rank-row__bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--bar);
+}
+
+.rank-row--first .rank-row__bar {
+  background: var(--bar-top);
+}
+
+.panel__empty {
+  margin: 8px 0 16px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 860px) {
+  .analytics { padding: 32px 20px 48px; }
+  .panels { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .stats { grid-template-columns: 1fr; }
+}

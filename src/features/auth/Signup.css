@@ -1,0 +1,235 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Nunito+Sans:wght@400;600;700&display=swap");
+
+:root {
+  --forest-900: #194a33;
+  --forest-700: #1f5a43;
+  --moss-500: #2f7a52;
+  --leaf-400: #6fb36a;
+  --ink: #23362d;
+  --muted: #7a8c82;
+  --field-bg: #eef4ee;
+  --page-bg: #e4eee4;
+}
+
+.signup-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--page-bg);
+  font-family: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+.signup-card {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  width: min(900px, 100%);
+  min-height: 540px;
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(25, 74, 51, 0.2);
+}
+
+/* ---------- Left panel ---------- */
+.signup-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  color: #fff;
+  background: linear-gradient(170deg, var(--forest-700), var(--moss-500));
+  overflow: hidden;
+}
+
+.signup-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  fill: var(--leaf-400);
+}
+
+.signup-panel-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  padding-bottom: 4rem; /* keeps text clear of the hills */
+}
+
+.signup-panel-body h2 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+}
+
+.signup-panel-body p {
+  margin: 0 0 0.75rem;
+  max-width: 26ch;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.signup-hills {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 160px;
+  pointer-events: none;
+}
+
+/* ---------- Right panel ---------- */
+.signup-form-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+}
+
+.signup-form-wrap h1 {
+  margin: 0 0 0.5rem;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--forest-700);
+  text-align: center;
+}
+
+.signup-hint {
+  margin: 0 0 1.75rem;
+  max-width: 34ch;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--muted);
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(340px, 100%);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0 0.9rem;
+  background: var(--field-bg);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.field:focus-within {
+  background: #fff;
+  border-color: var(--moss-500);
+}
+
+.field svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.95rem 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.field input::placeholder {
+  color: var(--muted);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  padding: 0.8rem 2.5rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.2s;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-outline {
+  color: #fff;
+  background: transparent;
+  border: 2px solid #fff;
+}
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-solid {
+  margin-top: 0.75rem;
+  color: #fff;
+  background: var(--moss-500);
+  border: 2px solid var(--moss-500);
+}
+.btn-solid:hover {
+  background: var(--forest-700);
+  border-color: var(--forest-700);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--leaf-400);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Mobile: stack panels ---------- */
+@media (max-width: 720px) {
+  .signup-card {
+    grid-template-columns: 1fr;
+  }
+  .signup-panel-body {
+    padding: 2rem 0 5rem;
+  }
+}
