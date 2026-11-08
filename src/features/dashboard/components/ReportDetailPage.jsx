@@ -30,6 +30,7 @@ export default function ReportDetailPage() {
   const [adminName, setAdminName] = useState("");
   const [isClaiming, setIsClaiming] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isSettingInProgress, setIsSettingInProgress] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, "reports", id), (snap) => {
@@ -226,7 +227,6 @@ export default function ReportDetailPage() {
       });
 
       toast.success("Report verified");
-
     } catch (error) {
       if (error.message === "REPORT_NOT_FOUND") {
         toast.error("Report not found.");
@@ -241,6 +241,68 @@ export default function ReportDetailPage() {
       console.error(error);
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleInProgress = async () => {
+    if (isSettingInProgress) {
+      return;
+    }
+
+    if (!adminID || !adminName) {
+      toast.error("Your profile is not loaded yet.");
+      return;
+    }
+
+    try {
+      setIsSettingInProgress(true);
+
+      await runTransaction(db, async (transaction) => {
+        const reportRef = doc(db, "reports", id);
+        const historyRef = doc(collection(db, "reports", id, "history"));
+
+        const snap = await transaction.get(reportRef);
+
+        if (!snap.exists()) throw new Error("REPORT_NOT_FOUND");
+
+        const current = snap.data();
+
+        if (current.assignedTo !== adminID)
+          throw new Error("NOT_ASSIGNED_TO_YOU");
+        if (current.status !== "verified")
+          throw new Error("NOT_STARTABLE");
+
+        transaction.update(reportRef, {
+          status: "in_progress",
+        });
+
+        transaction.set(historyRef, {
+          action: "in_progress",
+          fromStatus: current.status,
+          toStatus: "in_progress",
+          actorID: adminID,
+          actorName: adminName,
+          actorRole: "admin",
+          note: "Work started",
+          createdAt: serverTimestamp(),
+        });
+      });
+
+      toast.success("Report in progress");
+    } catch (error) {
+      if (error.message === "REPORT_NOT_FOUND") {
+        toast.error("Report not found.");
+      } else if (error.message === "NOT_ASSIGNED_TO_YOU") {
+        toast.error("Report is not assigned to you.");
+      } else if (error.message === "NOT_STARTABLE") {
+        toast.error("Only a verified report can be set to in progress.");
+      } else {
+        toast.error("Something went wrong.");
+      }
+
+      console.error(error);
+    } finally {
+      setIsSettingInProgress(false);
     }
   };
 
@@ -292,6 +354,8 @@ export default function ReportDetailPage() {
       isClaiming={isClaiming}
       onVerify={handleVerify}
       isVerifying={isVerifying}
+      onSetInProgress={handleInProgress}
+      isSettingInProgress={isSettingInProgress}
       decisionsDisabled={!canDecide}
       report={detail}
     />
