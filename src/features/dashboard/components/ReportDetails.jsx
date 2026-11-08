@@ -116,7 +116,7 @@ export default function ReportDetail({
   onSetInProgress,
   onResolve,
   isClaiming,
-  isVerifying
+  isVerifying,
 }) {
   const {
     id,
@@ -169,6 +169,7 @@ export default function ReportDetail({
   };
 
   const statusKey = normalize(status);
+  const isVerified = statusKey === "verified";
   const isOffPipeline = OFF_PIPELINE.includes(statusKey);
   const currentStep = PIPELINE.findIndex(
     (s) => s.key === (isOffPipeline ? "under_review" : statusKey),
@@ -485,7 +486,7 @@ export default function ReportDetail({
                 </div>
               )}
 
-              {view === "decision" && (
+              {view === "decision" && !isVerified && (
                 <div className="rd-decision">
                   <div className="rd-decision-head">
                     <h2 className="rd-decision-title">Next step</h2>
@@ -503,7 +504,8 @@ export default function ReportDetail({
                     disabled={decisionsDisabled || isVerifying}
                     onClick={onVerify}
                   >
-                    <Check size={18} /> {isVerifying ? 'Verifying...' : 'Verify'}
+                    <Check size={18} />{" "}
+                    {isVerifying ? "Verifying..." : "Verify"}
                   </button>
 
                   <div className="rd-secondary">
@@ -553,6 +555,41 @@ export default function ReportDetail({
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+
+              {view === "decision" && isVerified && (
+                <div className="rd-decision">
+                  <div className="rd-decision-head">
+                    <h2 className="rd-decision-title">Next step</h2>
+                    <span className="rd-card-aside rd-card-aside--dark">
+                      Field work
+                    </span>
+                  </div>
+                  <p className="rd-decision-sub">
+                    Tells the reporter that a team is on it.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="rd-verify"
+                    disabled={decisionsDisabled}
+                    onClick={onSetInProgress}
+                  >
+                    <Wrench size={18} /> Start work
+                  </button>
+
+                  <button
+                    type="button"
+                    className="rd-resolve"
+                    disabled={decisionsDisabled}
+                    onClick={onResolve}
+                  >
+                    <span className="rd-resolve-icon">
+                      <CircleCheck size={16} />
+                    </span>
+                    Resolve
+                  </button>
                 </div>
               )}
 
