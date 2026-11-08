@@ -100,8 +100,6 @@ export default function ReportDetail({
   position,
   contactVisible = false,
   decisionsDisabled = true,
-  showAdminActions = false,
-  adminActionsDisabled = true,
   onPrev,
   onNext,
   onCopyId,
@@ -117,6 +115,7 @@ export default function ReportDetail({
   onResolve,
   isClaiming,
   isVerifying,
+  isSettingInProgress,
 }) {
   const {
     id,
@@ -170,6 +169,7 @@ export default function ReportDetail({
 
   const statusKey = normalize(status);
   const isVerified = statusKey === "verified";
+  const isInProgress = statusKey === "in_progress";
   const isOffPipeline = OFF_PIPELINE.includes(statusKey);
   const currentStep = PIPELINE.findIndex(
     (s) => s.key === (isOffPipeline ? "under_review" : statusKey),
@@ -486,7 +486,7 @@ export default function ReportDetail({
                 </div>
               )}
 
-              {view === "decision" && !isVerified && (
+              {view === "decision" && !isVerified && !isInProgress && (
                 <div className="rd-decision">
                   <div className="rd-decision-head">
                     <h2 className="rd-decision-title">Next step</h2>
@@ -534,27 +534,6 @@ export default function ReportDetail({
                       <CircleX size={18} /> Reject
                     </button>
                   </div>
-
-                  {showAdminActions && (
-                    <div className="rd-admin">
-                      <button
-                        type="button"
-                        className="rd-sec-btn"
-                        disabled={adminActionsDisabled}
-                        onClick={onSetInProgress}
-                      >
-                        <Wrench size={18} /> Set In Progress
-                      </button>
-                      <button
-                        type="button"
-                        className="rd-sec-btn"
-                        disabled={adminActionsDisabled}
-                        onClick={onResolve}
-                      >
-                        <CircleCheck size={18} /> Resolve
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -573,10 +552,11 @@ export default function ReportDetail({
                   <button
                     type="button"
                     className="rd-verify"
-                    disabled={decisionsDisabled}
+                    disabled={decisionsDisabled || isSettingInProgress}
                     onClick={onSetInProgress}
                   >
-                    <Wrench size={18} /> Start work
+                    <Wrench size={18} />{" "}
+                    {isSettingInProgress ? "Starting work..." : "Start work"}
                   </button>
 
                   <button
@@ -589,6 +569,30 @@ export default function ReportDetail({
                       <CircleCheck size={16} />
                     </span>
                     Resolve
+                  </button>
+                </div>
+              )}
+
+              {view === "decision" && isInProgress && (
+                <div className="rd-decision">
+                  <div className="rd-decision-head">
+                    <h2 className="rd-decision-title">Next step</h2>
+                    <span className="rd-card-aside rd-card-aside--dark">
+                      Field work
+                    </span>
+                  </div>
+                  <p className="rd-decision-sub">
+                    Closes the report with a resolution note for the reporter.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="rd-verify"
+                    disabled={decisionsDisabled || isResolving}
+                    onClick={onResolve}
+                  >
+                    <CircleCheck size={18} />{" "}
+                    {isResolving ? "Resolving..." : "Resolve"}
                   </button>
                 </div>
               )}

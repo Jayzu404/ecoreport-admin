@@ -8,7 +8,6 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  writeBatch,
 } from "firebase/firestore";
 
 import { onAuthStateChanged } from "firebase/auth";
