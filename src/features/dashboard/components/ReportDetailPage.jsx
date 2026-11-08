@@ -8,6 +8,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  writeBatch,
 } from "firebase/firestore";
 
 import { onAuthStateChanged } from "firebase/auth";
@@ -28,6 +29,7 @@ export default function ReportDetailPage() {
   const [adminID, setAdminID] = useState(0);
   const [adminName, setAdminName] = useState("");
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, "reports", id), (snap) => {
@@ -140,8 +142,8 @@ export default function ReportDetailPage() {
           throw new Error("ALREADY_CLAIMED");
         }
 
-        if (current.status !== 'pending') {
-          throw new Error('NOT_CLAIMABLE');
+        if (current.status !== "pending") {
+          throw new Error("NOT_CLAIMABLE");
         }
 
         transaction.update(reportRef, {
@@ -168,33 +170,85 @@ export default function ReportDetailPage() {
         toast.error("Report not found.");
       } else if (error.message === "ALREADY_CLAIMED") {
         toast.error("Report is already claimed.");
-      } else if (error.message === 'NOT_CLAIMABLE') {
-        toast.error('Report is not claimable.');
-      }  else {
+      } else if (error.message === "NOT_CLAIMABLE") {
+        toast.error("Report is not claimable.");
+      } else {
         toast.error("Something went wrong.");
       }
       console.log(error);
-    }
-    finally {
+    } finally {
       setIsClaiming(false);
     }
   };
 
   const handleVerify = async () => {
+    if (isVerifying) {
+      return;
+    }
 
-  }
+    if (!adminID || !adminName) {
+      toast.error("Your profile is not loaded yet.");
+      return;
+    }
 
-  const handleReject = async () => {
-    
-  }
+    try {
+      setIsVerifying(true);
 
-  const handleDuplicate = async () => {
+      await runTransaction(db, async (transaction) => {
+        const reportRef = doc(db, "reports", id);
+        const historyRef = doc(collection(db, "reports", id, "history"));
 
-  }
+        const snap = await transaction.get(reportRef);
 
-  const handleRequestInfo = async () => {
+        if (!snap.exists()) throw new Error("REPORT_NOT_FOUND");
 
-  }
+        const current = snap.data();
+
+        if (current.assignedTo !== adminID)
+          throw new Error("NOT_ASSIGNED_TO_YOU");
+        if (current.status !== "under_review")
+          throw new Error("NOT_VERIFIABLE");
+
+        transaction.update(reportRef, {
+          status: "verified",
+        });
+
+        transaction.set(historyRef, {
+          action: "verified",
+          fromStatus: current.status,
+          toStatus: "verified",
+          actorID: adminID,
+          actorName: adminName,
+          actorRole: "admin",
+          note: "Report verified",
+          createdAt: serverTimestamp(),
+        });
+      });
+
+      toast.success("Report verified");
+
+    } catch (error) {
+      if (error.message === "REPORT_NOT_FOUND") {
+        toast.error("Report not found.");
+      } else if (error.message === "NOT_ASSIGNED_TO_YOU") {
+        toast.error("Report is not assigned to you.");
+      } else if (error.message === "NOT_VERIFIABLE") {
+        toast.error("Not verifiable");
+      } else {
+        toast.error("Something went wrong.");
+      }
+
+      console.error(error);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleReject = async () => {};
+
+  const handleDuplicate = async () => {};
+
+  const handleRequestInfo = async () => {};
 
   if (loading) return <p>Loading…</p>;
   if (!report) return <p>Report not found.</p>;
@@ -232,5 +286,14 @@ export default function ReportDetailPage() {
     }),
   };
 
-  return <ReportDetails onClaim={handleClaim} isClaiming={isClaiming} decisionsDisabled={!canDecide} report={detail} />;
+  return (
+    <ReportDetails
+      onClaim={handleClaim}
+      isClaiming={isClaiming}
+      onVerify={handleVerify}
+      isVerifying={isVerifying}
+      decisionsDisabled={!canDecide}
+      report={detail}
+    />
+  );
 }

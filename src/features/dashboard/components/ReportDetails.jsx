@@ -116,6 +116,7 @@ export default function ReportDetail({
   onSetInProgress,
   onResolve,
   isClaiming,
+  isVerifying
 }) {
   const {
     id,
@@ -499,10 +500,10 @@ export default function ReportDetail({
                   <button
                     type="button"
                     className="rd-verify"
-                    disabled={decisionsDisabled}
+                    disabled={decisionsDisabled || isVerifying}
                     onClick={onVerify}
                   >
-                    <Check size={18} /> Verify
+                    <Check size={18} /> {isVerifying ? 'Verifying...' : 'Verify'}
                   </button>
 
                   <div className="rd-secondary">
