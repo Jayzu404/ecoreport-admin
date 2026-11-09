@@ -22,6 +22,7 @@ import {
   History,
   Wrench,
   CircleCheck,
+  ImagePlus,
 } from "lucide-react";
 import "./ReportDetails.css";
 
@@ -48,6 +49,8 @@ const INFO_SUGGESTIONS = [
   "Is this still happening?",
   "What is the nearest landmark?",
 ];
+
+const MIN_NOTE = 10;
 
 /* Statuses that sit beside the pipeline: they light up the "Under Review" slot
    but show their own label and color. */
@@ -116,6 +119,7 @@ export default function ReportDetail({
   isClaiming,
   isVerifying,
   isSettingInProgress,
+  isResolving,
 }) {
   const {
     id,
@@ -133,13 +137,17 @@ export default function ReportDetail({
     reporter,
     nearby = [],
     history = [],
+    resolutionNote,
   } = report;
 
-  const [view, setView] = useState("decision"); // "decision" | "reject" | "info" | "duplicate"
+  const [view, setView] = useState("decision");
   const [rejectReason, setRejectReason] = useState("");
   const [rejectNote, setRejectNote] = useState("");
   const [infoQuestion, setInfoQuestion] = useState("");
   const [duplicateOf, setDuplicateOf] = useState("");
+  const [resolveNote, setResolveNote] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState("");
 
   const navigate = useNavigate();
 
@@ -149,6 +157,9 @@ export default function ReportDetail({
     setRejectNote("");
     setInfoQuestion("");
     setDuplicateOf("");
+    setResolveNote("");
+    setProofFile(null);
+    setProofPreview("");
   };
 
   const submitReject = () => {
@@ -167,9 +178,30 @@ export default function ReportDetail({
     onMarkDuplicate?.({ originalId: duplicateOf });
   };
 
+  const submitResolve = () => {
+    if (resolveNote.trim().length < MIN_NOTE) return;
+    onResolve?.({ adminNote: resolveNote.trim(), photoFile: proofFile });
+  };
+
+  const pickProof = (e) => {
+    console.log("pickProof ran", e.target.files)
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProofFile(file);
+    setProofPreview(URL.createObjectURL(file));
+    // e.target.value = ""; // lets the same file be picked again after removing it
+  };
+
+  const clearProof = () => {
+    setProofFile(null);
+    setProofPreview("");
+  };
+
   const statusKey = normalize(status);
   const isVerified = statusKey === "verified";
   const isInProgress = statusKey === "in_progress";
+  const isResolved = statusKey === "resolved";
+  const resolvedEvent = history.find((h) => normalize(h.status) === "resolved");
   const isOffPipeline = OFF_PIPELINE.includes(statusKey);
   const currentStep = PIPELINE.findIndex(
     (s) => s.key === (isOffPipeline ? "under_review" : statusKey),
@@ -191,8 +223,6 @@ export default function ReportDetail({
   const phone = reporter?.phone ?? reporter?.contact;
   const email = reporter?.email;
   const MASK = "••••••••••";
-
-  console.log(history);
 
   return (
     <div className="rd">
@@ -486,7 +516,7 @@ export default function ReportDetail({
                 </div>
               )}
 
-              {view === "decision" && !isVerified && !isInProgress && (
+              {view === "decision" && !isVerified && !isInProgress && !isResolved &&(
                 <div className="rd-decision">
                   <div className="rd-decision-head">
                     <h2 className="rd-decision-title">Next step</h2>
@@ -558,21 +588,9 @@ export default function ReportDetail({
                     <Wrench size={18} />{" "}
                     {isSettingInProgress ? "Starting work..." : "Start work"}
                   </button>
-
-                  <button
-                    type="button"
-                    className="rd-resolve"
-                    disabled={decisionsDisabled}
-                    onClick={onResolve}
-                  >
-                    <span className="rd-resolve-icon">
-                      <CircleCheck size={16} />
-                    </span>
-                    Resolve
-                  </button>
                 </div>
               )}
-
+  
               {view === "decision" && isInProgress && (
                 <div className="rd-decision">
                   <div className="rd-decision-head">
@@ -588,11 +606,10 @@ export default function ReportDetail({
                   <button
                     type="button"
                     className="rd-verify"
-                    disabled={decisionsDisabled || isResolving}
-                    onClick={onResolve}
+                    disabled={decisionsDisabled}
+                    onClick={() => setView("resolve")}
                   >
-                    <CircleCheck size={18} />{" "}
-                    {isResolving ? "Resolving..." : "Resolve"}
+                    <CircleCheck size={18} /> Resolve
                   </button>
                 </div>
               )}
@@ -744,6 +761,95 @@ export default function ReportDetail({
                     )}
                   </fieldset>
                 </DecisionPanel>
+              )}
+
+              {view === "resolve" && isInProgress && (
+                <DecisionPanel
+                  tone="resolve"
+                  icon={<CircleCheck size={20} />}
+                  title="Resolve"
+                  subtitle="Closes the report with a resolution note for the reporter."
+                  submitLabel={isResolving ? "Resolving..." : "Resolve report"}
+                  submitDisabled={
+                    resolveNote.trim().length < MIN_NOTE || isResolving
+                  }
+                  onSubmit={submitResolve}
+                  onClose={closePanel}
+                >
+                  <div className="rd-label-row">
+                    <label className="rd-field-label" htmlFor="resolve-note">
+                      Resolution note{" "}
+                      <span className="rd-badge">Shown to reporter</span>
+                    </label>
+                    <span className="rd-counter">
+                      {resolveNote.trim().length}/{MIN_NOTE} min
+                    </span>
+                  </div>
+                  <textarea
+                    id="resolve-note"
+                    className="rd-textarea"
+                    placeholder="What was done to fix this?"
+                    value={resolveNote}
+                    onChange={(e) => setResolveNote(e.target.value)}
+                    autoFocus
+                  />
+
+                  <p className="rd-field-label rd-field-label--spaced">
+                    Proof photo <span className="rd-optional">(optional)</span>
+                  </p>
+                  <div className="rd-proof">
+                    <label className="rd-upload">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={pickProof}
+                      />
+                      {proofPreview ? (
+                        <img
+                          className="rd-upload-preview"
+                          src={proofPreview}
+                          alt="Proof preview"
+                        />
+                      ) : (
+                        <>
+                          <ImagePlus size={22} />
+                          <span>Upload photo</span>
+                        </>
+                      )}
+                    </label>
+                    {proofPreview && (
+                      <button
+                        type="button"
+                        className="rd-proof-link"
+                        onClick={clearProof}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </DecisionPanel>
+              )}
+
+              {isResolved && (
+                <div className="rd-outcome">
+                  <h2 className="rd-decision-title">Outcome</h2>
+                  <div className="rd-outcome-box">
+                    <div className="rd-outcome-head">
+                      <StatusPill status="resolved" solid>
+                        Resolved
+                      </StatusPill>
+                      <span className="rd-outcome-meta">
+                        {[resolvedEvent?.at, resolvedEvent?.by]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </div>
+                    <p className="rd-outcome-note">{resolutionNote}</p>
+                    <p className="rd-outcome-closed">
+                      This report is closed. No further actions.
+                    </p>
+                  </div>
+                </div>
               )}
             </section>
 

@@ -30,6 +30,11 @@ export default function ReportDetailPage() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSettingInProgress, setIsSettingInProgress] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+
+  const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const CLOUDINARY_UPLOAD_PRESET = import.meta.env
+    .VITE_CLOUDINARY_UPLOAD_PRESET;
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, "reports", id), (snap) => {
@@ -79,6 +84,28 @@ export default function ReportDetailPage() {
   }, [id]);
 
   const history = historyState.id === id ? historyState.events : [];
+
+  const uploadImage = async (file) => {
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        { method: "POST", body: data },
+      );
+
+      const result = await response.json();
+      if (!result.secure_url) {
+        throw new Error(result.error?.message || "No URL returned");
+      }
+      return result.secure_url;
+    } catch (error) {
+      console.error("Cloudinary upload failed:", error);
+      throw new Error("UPLOAD_FAILED", { cause: error });
+    }
+  };
 
   // UTROHON PANI
   useEffect(() => {
@@ -268,8 +295,7 @@ export default function ReportDetailPage() {
 
         if (current.assignedTo !== adminID)
           throw new Error("NOT_ASSIGNED_TO_YOU");
-        if (current.status !== "verified")
-          throw new Error("NOT_STARTABLE");
+        if (current.status !== "verified") throw new Error("NOT_STARTABLE");
 
         transaction.update(reportRef, {
           status: "in_progress",
@@ -302,6 +328,77 @@ export default function ReportDetailPage() {
       console.error(error);
     } finally {
       setIsSettingInProgress(false);
+    }
+  };
+
+  const handleResolve = async ({ adminNote, photoFile }) => {
+    if (isResolving) {
+      return;
+    }
+
+    if (!adminID || !adminName) {
+      toast.error("Your profile is not loaded yet.");
+      return;
+    }
+
+    try {
+      setIsResolving(true);
+
+      const resolvePhotoUrl = photoFile ? await uploadImage(photoFile) : null;
+
+      await runTransaction(db, async (transaction) => {
+        const reportRef = doc(db, "reports", id);
+        const historyRef = doc(collection(db, "reports", id, "history"));
+
+        const snap = await transaction.get(reportRef);
+
+        if (!snap.exists()) throw new Error("REPORT_NOT_FOUND");
+
+        const current = snap.data();
+
+        if (current.assignedTo !== adminID)
+          throw new Error("NOT_ASSIGNED_TO_YOU");
+        if (current.status !== "in_progress") throw new Error("NOT_RESOLVABLE");
+
+        transaction.update(reportRef, {
+          status: "resolved",
+          resolutionNote: adminNote,
+          resolutionPhotoUrl: resolvePhotoUrl,
+        });
+
+        transaction.set(historyRef, {
+          action: "resolved",
+          fromStatus: current.status,
+          toStatus: "resolved",
+          actorID: adminID,
+          actorName: adminName,
+          actorRole: "admin",
+          note: "Report Resolved",
+          adminNote,
+          resolvePhotoUrl,
+          createdAt: serverTimestamp(),
+        });
+      });
+
+      toast.success("Report resolved.");
+    } catch (error) {
+      if (error.message === "REPORT_NOT_FOUND") {
+        toast.error("Report not found.");
+      } else if (error.message === "NOT_ASSIGNED_TO_YOU") {
+        toast.error("Report is not assigned to you.");
+      } else if (error.message === "UPLOAD_FAILED") {
+        toast.error(
+          "Photo upload failed. Check your connection and try again.",
+        );
+      } else if (error.message === "NOT_RESOLVABLE") {
+        toast.error("Only in progress report can be set to resolved.");
+      } else {
+        toast.error("Something went wrong.");
+      }
+
+      console.error(error);
+    } finally {
+      setIsResolving(false);
     }
   };
 
@@ -345,6 +442,7 @@ export default function ReportDetailPage() {
         note: e.note,
       };
     }),
+    resolutionNote: report.resolutionNote
   };
 
   return (
@@ -355,6 +453,8 @@ export default function ReportDetailPage() {
       isVerifying={isVerifying}
       onSetInProgress={handleInProgress}
       isSettingInProgress={isSettingInProgress}
+      onResolve={handleResolve}
+      isResolving={isResolving}
       decisionsDisabled={!canDecide}
       report={detail}
     />
