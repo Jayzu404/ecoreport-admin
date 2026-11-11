@@ -992,6 +992,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  padding: 0 0 5px 0;
 }
 
 .rd-decision-title {
@@ -1691,4 +1692,140 @@
   .rd-link-btn {
     min-width: 0;
   }
+}
+.rd-waiting-box {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 14px;
+  background: #fff8e8;
+}
+
+.rd-waiting-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #fdecc4;
+  color: #8a5a00;
+}
+
+.rd-waiting-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: #3d2c00;
+}
+
+.rd-waiting-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #6b5320;
+}
+
+.rd-convo {
+  padding: 0 20px;
+  overflow: hidden;
+}
+
+.rd-convo .rd-card-head {
+  padding: 18px 20px 4px;
+}
+
+.rd-convo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 14px 20px 20px;
+  list-style: none;
+}
+
+.rd-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rd-msg--admin {
+  align-items: flex-end;
+}
+
+.rd-msg--reporter {
+  align-items: flex-start;
+}
+
+.rd-msg-meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.rd-msg-meta strong {
+  font-weight: 600;
+  color: #1f2430;
+}
+
+.rd-bubble {
+  max-width: 78%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.45;
+}
+
+.rd-msg--admin .rd-bubble {
+  border-bottom-right-radius: 6px;
+  background: #e6f1ea;
+  color: #1b4d34;
+}
+
+.rd-msg--reporter .rd-bubble {
+  border-bottom-left-radius: 6px;
+  background: #f1f2f4;
+  color: #1f2430;
+}
+
+.rd-bubble-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.rd-bubble-photo {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  max-height: 220px;
+  margin-top: 10px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.rd-bubble-text + .rd-bubble-photo {
+  margin-top: 10px;
+}
+
+.rd-bubble > .rd-bubble-photo:first-child {
+  margin-top: 0;
+}
+
+.rd-convo-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 14px 0;
+  border-top: 1px solid #e8eaee;
+  font-size: 0.875rem;
+}
+
+.rd-convo-foot--waiting {
+  color: #8a4b00;
+}
+
+.rd-convo-foot--replied {
+  color: #1d4ed8;
 }

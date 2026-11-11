@@ -31,6 +31,8 @@ export default function ReportDetailPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSettingInProgress, setIsSettingInProgress] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
+  const [isRequestingInfo, setIsRequestingInfo] = useState(false);
+  const [conversations, setConversations] = useState([]);
 
   const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const CLOUDINARY_UPLOAD_PRESET = import.meta.env
@@ -41,6 +43,25 @@ export default function ReportDetailPage() {
       setReport(snap.exists() ? { id: snap.id, ...snap.data() } : null);
       setLoading(false);
     });
+    return unsubscribe;
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const q = query(
+      collection(db, "reports", id, "messages"),
+      orderBy("createdAt", "asc"),
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        setConversations(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      },
+      (error) => console.log(error),
+    );
+
     return unsubscribe;
   }, [id]);
 
@@ -233,11 +254,16 @@ export default function ReportDetailPage() {
 
         if (current.assignedTo !== adminID)
           throw new Error("NOT_ASSIGNED_TO_YOU");
-        if (current.status !== "under_review")
+
+        if (current.status === "need_info" && current.awaitingReply)
+          throw new Error("NEEDING_INFO");
+
+        if (current.status !== "under_review" && current.status !== "need_info")
           throw new Error("NOT_VERIFIABLE");
 
         transaction.update(reportRef, {
           status: "verified",
+          awaitingReply: false,
         });
 
         transaction.set(historyRef, {
@@ -260,6 +286,8 @@ export default function ReportDetailPage() {
         toast.error("Report is not assigned to you.");
       } else if (error.message === "NOT_VERIFIABLE") {
         toast.error("Not verifiable");
+      } else if (error.message === "NEEDING_INFO") {
+        toast.error("Can't verify, still needing info");
       } else {
         toast.error("Something went wrong.");
       }
@@ -402,11 +430,92 @@ export default function ReportDetailPage() {
     }
   };
 
+  const handleRequestInfo = async ({ question }) => {
+    if (isRequestingInfo) {
+      return;
+    }
+
+    if (!adminID || !adminName) {
+      toast.error("Your profile is not loaded yet.");
+      return;
+    }
+
+    try {
+      setIsRequestingInfo(true);
+
+      await runTransaction(db, async (transaction) => {
+        const reportRef = doc(db, "reports", id);
+        const historyRef = doc(collection(db, "reports", id, "history"));
+        const messageRef = doc(collection(db, "reports", id, "messages"));
+
+        const snap = await transaction.get(reportRef);
+
+        if (!snap.exists()) {
+          throw new Error("REPORT_NOT_FOUND");
+        }
+
+        const current = snap.data();
+
+        if (current.assignedTo !== adminID)
+          throw new Error("NOT_ASSIGNED_TO_YOU");
+
+        if (current.status !== "under_review" && current.status !== "need_info")
+          throw new Error("NOT_INFO_REQUESTABLE");
+
+        if (current.status === "need_info" && current.awaitingReply !== false)
+          throw new Error("WAITING_FOR_REPLY");
+
+        transaction.update(reportRef, {
+          status: "need_info",
+          awaitingReply: true,
+        });
+
+        transaction.set(messageRef, {
+          senderID: adminID,
+          senderRole: "admin",
+          message: question,
+          createdAt: serverTimestamp(),
+        });
+
+        transaction.set(historyRef, {
+          action: "request_info",
+          fromStatus: current.status,
+          toStatus: "need_info",
+          actorID: adminID,
+          actorName: adminName,
+          actorRole: "admin",
+          note: "Report need more info",
+          createdAt: serverTimestamp(),
+        });
+      });
+
+      toast.success("Requested more info");
+
+      return true;
+    } catch (error) {
+      if (error.message === "REPORT_NOT_FOUND") {
+        toast.error("Report not found.");
+      } else if (error.message === "NOT_ASSIGNED_TO_YOU") {
+        toast.error("Report is not assigned to you.");
+      } else if (error.message === "NOT_INFO_REQUESTABLE") {
+        toast.error("Info can only be requested while a report is under review.");
+      } else if (error.message === "WAITING_FOR_REPLY") {
+        toast.error("Still waiting for the reporter to reply.");
+      } else {
+        toast.error("Something went wrong.");
+      }
+
+      console.error(error);
+
+      return false;
+    } finally {
+      setIsRequestingInfo(false);
+    }
+  };
+
   const handleReject = async () => {};
 
   const handleDuplicate = async () => {};
-
-  const handleRequestInfo = async () => {};
 
   if (loading) return <p>Loading…</p>;
   if (!report) return <p>Report not found.</p>;
@@ -442,7 +551,8 @@ export default function ReportDetailPage() {
         note: e.note,
       };
     }),
-    resolutionNote: report.resolutionNote
+    resolutionNote: report.resolutionNote,
+    awaitingReply: report.awaitingReply,
   };
 
   return (
@@ -455,8 +565,12 @@ export default function ReportDetailPage() {
       isSettingInProgress={isSettingInProgress}
       onResolve={handleResolve}
       isResolving={isResolving}
+      onRequestInfo={handleRequestInfo}
+      isRequestingInfo={isRequestingInfo}
       decisionsDisabled={!canDecide}
       report={detail}
+      conversations={conversations}
+      adminName={adminName}
     />
   );
 }

@@ -23,6 +23,8 @@ import {
   Wrench,
   CircleCheck,
   ImagePlus,
+  Hourglass,
+  MessageSquare,
 } from "lucide-react";
 import "./ReportDetails.css";
 
@@ -120,6 +122,10 @@ export default function ReportDetail({
   isVerifying,
   isSettingInProgress,
   isResolving,
+  isRequestingInfo,
+  conversations,
+  adminName,
+  canVerify,
 }) {
   const {
     id,
@@ -138,6 +144,7 @@ export default function ReportDetail({
     nearby = [],
     history = [],
     resolutionNote,
+    awaitingReply,
   } = report;
 
   const [view, setView] = useState("decision");
@@ -162,15 +169,32 @@ export default function ReportDetail({
     setProofPreview("");
   };
 
+  const toDateObj = (ts) => {
+    if (!ts) return null;
+    if (typeof ts.toDate === "function") return ts.toDate(); // real Timestamp
+    if (typeof ts.seconds === "number") return new Date(ts.seconds * 1000); // plain object
+    return null;
+  };
+
+  const formatTime = (ts) => {
+    const date = toDateObj(ts);
+    return date
+      ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "";
+  };
+
   const submitReject = () => {
     if (!rejectReason) return;
     onReject?.({ reason: rejectReason, note: rejectNote.trim() });
   };
 
-  const submitInfo = () => {
+  const submitInfo = async () => {
     const question = infoQuestion.trim();
     if (!question) return;
-    onRequestInfo?.({ question });
+
+    const success = await onRequestInfo?.({ question });
+
+    if (success) closePanel();
   };
 
   const submitDuplicate = () => {
@@ -184,7 +208,6 @@ export default function ReportDetail({
   };
 
   const pickProof = (e) => {
-    console.log("pickProof ran", e.target.files)
     const file = e.target.files?.[0];
     if (!file) return;
     setProofFile(file);
@@ -201,6 +224,9 @@ export default function ReportDetail({
   const isVerified = statusKey === "verified";
   const isInProgress = statusKey === "in_progress";
   const isResolved = statusKey === "resolved";
+  const isNeedingInfo = statusKey === "need_info";
+  const isWaitingForReply =
+    statusKey === "need_info" && awaitingReply !== false;
   const resolvedEvent = history.find((h) => normalize(h.status) === "resolved");
   const isOffPipeline = OFF_PIPELINE.includes(statusKey);
   const currentStep = PIPELINE.findIndex(
@@ -381,6 +407,74 @@ export default function ReportDetail({
               </div>
             </section>
 
+            {conversations.length > 0 && (
+              <section
+                className="rd-card rd-convo"
+                aria-label="Conversation with the reporter"
+              >
+                <div className="rd-card-head rd-card-head--plain">
+                  <h2 className="rd-card-title">
+                    <MessageSquare size={19} /> Conversation
+                  </h2>
+                  <span className="rd-card-aside">
+                    {conversations.length}{" "}
+                    {conversations.length === 1 ? "message" : "messages"}
+                  </span>
+                </div>
+
+                <ol className="rd-convo-list">
+                  {conversations.map((m) => (
+                    <li key={m.id} className={`rd-msg rd-msg--${m.senderRole}`}>
+                      <p className="rd-msg-meta">
+                        <strong>
+                          {m.senderRole === "admin"
+                            ? `${adminName}`
+                            : "Reporter"}
+                        </strong>
+                        {formatTime(m.createdAt) &&
+                          ` · ${formatTime(m.createdAt)}`}
+                      </p>
+                      <div className="rd-bubble">
+                        {m.message && (
+                          <p className="rd-bubble-text">{m.message}</p>
+                        )}
+                        {m.photoUrl && (
+                          <img
+                            className="rd-bubble-photo"
+                            src={m.photoUrl}
+                            alt="Photo sent by the reporter"
+                          />
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+
+                {isNeedingInfo && (
+                  <div
+                    className={`rd-convo-foot ${
+                      awaitingReply === false
+                        ? "rd-convo-foot--replied"
+                        : "rd-convo-foot--waiting"
+                    }`}
+                  >
+                    {awaitingReply === false ? (
+                      <>
+                        <MessageSquare size={16} />
+                        The reporter replied. Review their answer, then verify,
+                        ask again, or reject.
+                      </>
+                    ) : (
+                      <>
+                        <Clock size={16} />
+                        Waiting for the reporter to reply.
+                      </>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
             <section className="rd-card rd-location">
               <div className="rd-card-head">
                 <h2 className="rd-card-title">
@@ -516,56 +610,80 @@ export default function ReportDetail({
                 </div>
               )}
 
-              {view === "decision" && !isVerified && !isInProgress && !isResolved &&(
-                <div className="rd-decision">
-                  <div className="rd-decision-head">
-                    <h2 className="rd-decision-title">Next step</h2>
-                    <span className="rd-card-aside rd-card-aside--dark">
-                      Review decision
-                    </span>
-                  </div>
-                  <p className="rd-decision-sub">
-                    Confirms the issue is real and ready for action.
-                  </p>
+              {view === "decision" &&
+                !isVerified &&
+                !isInProgress &&
+                !isResolved && (
+                  <div className="rd-decision">
+                    <div className="rd-decision-head">
+                      <h2 className="rd-decision-title">Next step</h2>
+                      <span className="rd-card-aside rd-card-aside--dark">
+                        Review decision
+                      </span>
+                    </div>
+                    <p className="rd-decision-sub">
+                      Confirms the issue is real and ready for action.
+                    </p>
 
-                  <button
-                    type="button"
-                    className="rd-verify"
-                    disabled={decisionsDisabled || isVerifying}
-                    onClick={onVerify}
-                  >
-                    <Check size={18} />{" "}
-                    {isVerifying ? "Verifying..." : "Verify"}
-                  </button>
+                    {isWaitingForReply && (
+                      <div className="rd-waiting-box">
+                        <span className="rd-waiting-icon">
+                          <Hourglass size={20} />
+                        </span>
+                        <div>
+                          <p className="rd-waiting-title">
+                            Waiting for the reporter's reply
+                          </p>
+                          <p className="rd-waiting-text">
+                            Your question was sent.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="rd-secondary">
                     <button
                       type="button"
-                      className="rd-sec-btn rd-sec-btn--info"
-                      disabled={decisionsDisabled}
-                      onClick={() => setView("info")}
+                      className="rd-verify"
+                      disabled={
+                        decisionsDisabled || isVerifying || isWaitingForReply
+                      }
+                      onClick={onVerify}
                     >
-                      <CircleHelp size={18} /> Request info
+                      <Check size={18} />{" "}
+                      {isVerifying ? "Verifying..." : "Verify"}
                     </button>
-                    <button
-                      type="button"
-                      className="rd-sec-btn rd-sec-btn--dup"
-                      disabled={decisionsDisabled}
-                      onClick={() => setView("duplicate")}
-                    >
-                      <Copy size={18} /> Duplicate
-                    </button>
-                    <button
-                      type="button"
-                      className="rd-sec-btn rd-sec-btn--reject"
-                      disabled={decisionsDisabled}
-                      onClick={() => setView("reject")}
-                    >
-                      <CircleX size={18} /> Reject
-                    </button>
+
+                    <div className="rd-secondary">
+                      <button
+                        type="button"
+                        className="rd-sec-btn rd-sec-btn--info"
+                        disabled={decisionsDisabled || isRequestingInfo}
+                        onClick={() => setView("info")}
+                      >
+                        <CircleHelp size={18} />{" "}
+                        {isRequestingInfo
+                          ? "Requesting info..."
+                          : "Request info"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rd-sec-btn rd-sec-btn--dup"
+                        disabled={decisionsDisabled}
+                        onClick={() => setView("duplicate")}
+                      >
+                        <Copy size={18} /> Duplicate
+                      </button>
+                      <button
+                        type="button"
+                        className="rd-sec-btn rd-sec-btn--reject"
+                        disabled={decisionsDisabled}
+                        onClick={() => setView("reject")}
+                      >
+                        <CircleX size={18} /> Reject
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {view === "decision" && isVerified && (
                 <div className="rd-decision">
@@ -590,7 +708,7 @@ export default function ReportDetail({
                   </button>
                 </div>
               )}
-  
+
               {view === "decision" && isInProgress && (
                 <div className="rd-decision">
                   <div className="rd-decision-head">
@@ -676,8 +794,14 @@ export default function ReportDetail({
                   icon={<CircleHelp size={20} />}
                   title="Request info"
                   subtitle="Pauses review until the reporter replies."
-                  submitLabel="Send question"
-                  submitDisabled={!infoQuestion.trim()}
+                  submitLabel={
+                    isRequestingInfo ? "Sending..." : "Send question"
+                  }
+                  submitDisabled={
+                    !infoQuestion.trim() ||
+                    isRequestingInfo ||
+                    isWaitingForReply
+                  }
                   onSubmit={submitInfo}
                   onClose={closePanel}
                 >
