@@ -32,6 +32,7 @@ export default function ReportDetailPage() {
   const [isSettingInProgress, setIsSettingInProgress] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   const [conversations, setConversations] = useState([]);
 
   const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -498,7 +499,9 @@ export default function ReportDetailPage() {
       } else if (error.message === "NOT_ASSIGNED_TO_YOU") {
         toast.error("Report is not assigned to you.");
       } else if (error.message === "NOT_INFO_REQUESTABLE") {
-        toast.error("Info can only be requested while a report is under review.");
+        toast.error(
+          "Info can only be requested while a report is under review.",
+        );
       } else if (error.message === "WAITING_FOR_REPLY") {
         toast.error("Still waiting for the reporter to reply.");
       } else {
@@ -513,7 +516,83 @@ export default function ReportDetailPage() {
     }
   };
 
-  const handleReject = async () => {};
+  const handleReject = async ({ reason, note }) => {
+    if (isRejecting) {
+      return;
+    }
+
+    if (!adminID || !adminName) {
+      toast.error("Your profile is not loaded yet.");
+      return;
+    }
+
+    try {
+      setIsRejecting(true);
+
+      await runTransaction(db, async (transaction) => {
+        const reportRef = doc(db, "reports", id);
+        const historyRef = doc(collection(db, "reports", id, "history"));
+
+        const snap = await transaction.get(reportRef);
+
+        if (!snap.exists()) {
+          throw new Error("REPORT_NOT_FOUND");
+        }
+
+        const current = snap.data();
+
+        if (current.assignedTo !== adminID)
+          throw new Error("NOT_ASSIGNED_TO_YOU");
+
+        if (current.status !== "under_review" && current.status !== "need_info")
+          throw new Error("NOT_REJECTABLE");
+
+        if (current.status === "need_info" && current.awaitingReply !== false)
+          throw new Error("NEEDING_INFO");
+
+        transaction.update(reportRef, {
+          status: "rejected",
+          rejectionReason: reason,
+          rejectionNote: note,
+        });
+
+        transaction.set(historyRef, {
+          action: "rejected",
+          fromStatus: current.status,
+          toStatus: "rejected",
+          actorID: adminID,
+          actorName: adminName,
+          actorRole: "admin",
+          note: "Report rejected",
+          createdAt: serverTimestamp(),
+        });
+      });
+
+      toast.success("Report rejected.");
+
+      return true;
+    } catch (error) {
+      if (error.message === "REPORT_NOT_FOUND") {
+        toast.error("Report not found.");
+      } else if (error.message === "NOT_ASSIGNED_TO_YOU") {
+        toast.error("Report is not assigned to you.");
+      } else if (error.message === "NOT_REJECTABLE") {
+        toast.error(
+          "Report can only be rejected while a report is under review.",
+        );
+      } else if (error.message === "NEEDING_INFO") {
+        toast.error("Can't reject while waiting for the reporter to reply");
+      } else {
+        toast.error("Something went wrong.");
+      }
+
+      console.error(error);
+
+      return false;
+    } finally {
+      setIsRejecting(false);
+    }
+  };
 
   const handleDuplicate = async () => {};
 
@@ -553,6 +632,8 @@ export default function ReportDetailPage() {
     }),
     resolutionNote: report.resolutionNote,
     awaitingReply: report.awaitingReply,
+    rejectionReason: report.rejectionReason,
+    rejectionNote: report.rejectionNote,
   };
 
   return (
@@ -567,6 +648,8 @@ export default function ReportDetailPage() {
       isResolving={isResolving}
       onRequestInfo={handleRequestInfo}
       isRequestingInfo={isRequestingInfo}
+      onReject={handleReject}
+      isRejecting={isRejecting}
       decisionsDisabled={!canDecide}
       report={detail}
       conversations={conversations}

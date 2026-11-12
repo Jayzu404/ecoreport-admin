@@ -2,7 +2,7 @@
 export const STATUS = {
   submitted: { label: "Submitted", tone: "gray" },
   under_review: { label: "Under Review", tone: "blue" },
-  needs_info: { label: "Needs Info", tone: "amber" },
+  need_info: { label: "Needs Info", tone: "amber" },
   verified: { label: "Verified", tone: "green" },
   in_progress: { label: "In Progress", tone: "teal" },
   resolved: { label: "Resolved", tone: "green" },

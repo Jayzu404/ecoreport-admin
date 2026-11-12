@@ -1829,3 +1829,42 @@
 .rd-convo-foot--replied {
   color: #1d4ed8;
 }
+
+/* ---------- Outcome: rejected ---------- */
+.rd-outcome-box--rejected {
+  background: #fff0f0;
+  border-color: #fde2e2;
+}
+
+/* two-class selectors beat any existing .rd-pill--rejected rule */
+.rd-outcome-box--rejected .rd-pill {
+  background: #ffe9e9;
+  border: 1px solid #fbc9c9;
+  color: #c4161c;
+}
+
+.rd-outcome-box--rejected .rd-pill-dot {
+  background: #e5222a;
+}
+
+.rd-outcome-reason {
+  margin: 16px 0 0;
+  font-size: 1.125rem;
+  color: #9b1c1c;
+}
+
+.rd-outcome-reason strong {
+  font-weight: 700;
+  color: #8f1111;
+}
+
+.rd-outcome-reject-note {
+  margin: 8px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #7a2a2a;
+}
+
+.rd-outcome-box--rejected .rd-outcome-closed {
+  margin-top: 16px;
+}

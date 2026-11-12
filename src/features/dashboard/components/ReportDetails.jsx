@@ -125,7 +125,7 @@ export default function ReportDetail({
   isRequestingInfo,
   conversations,
   adminName,
-  canVerify,
+  isRejecting,
 }) {
   const {
     id,
@@ -145,6 +145,8 @@ export default function ReportDetail({
     history = [],
     resolutionNote,
     awaitingReply,
+    rejectionReason,
+    rejectionNote,
   } = report;
 
   const [view, setView] = useState("decision");
@@ -183,9 +185,12 @@ export default function ReportDetail({
       : "";
   };
 
-  const submitReject = () => {
+  const submitReject = async () => {
     if (!rejectReason) return;
-    onReject?.({ reason: rejectReason, note: rejectNote.trim() });
+
+    const success = await onReject?.({ reason: rejectReason, note: rejectNote.trim() });
+
+    if (success) closePanel();
   };
 
   const submitInfo = async () => {
@@ -224,10 +229,15 @@ export default function ReportDetail({
   const isVerified = statusKey === "verified";
   const isInProgress = statusKey === "in_progress";
   const isResolved = statusKey === "resolved";
+  const isRejected = statusKey === "rejected";
   const isNeedingInfo = statusKey === "need_info";
   const isWaitingForReply =
     statusKey === "need_info" && awaitingReply !== false;
   const resolvedEvent = history.find((h) => normalize(h.status) === "resolved");
+  const rejectedEvent = history.find((h) => normalize(h.status) === "rejected");
+  const rejectionReasonLabel =
+    REJECT_REASONS.find((r) => r.value === rejectionReason)?.label ??
+    rejectionReason;
   const isOffPipeline = OFF_PIPELINE.includes(statusKey);
   const currentStep = PIPELINE.findIndex(
     (s) => s.key === (isOffPipeline ? "under_review" : statusKey),
@@ -472,6 +482,8 @@ export default function ReportDetail({
                     )}
                   </div>
                 )}
+
+                {}
               </section>
             )}
 
@@ -613,7 +625,8 @@ export default function ReportDetail({
               {view === "decision" &&
                 !isVerified &&
                 !isInProgress &&
-                !isResolved && (
+                !isResolved &&
+                !isRejected && (
                   <div className="rd-decision">
                     <div className="rd-decision-head">
                       <h2 className="rd-decision-title">Next step</h2>
@@ -676,7 +689,7 @@ export default function ReportDetail({
                       <button
                         type="button"
                         className="rd-sec-btn rd-sec-btn--reject"
-                        disabled={decisionsDisabled}
+                        disabled={decisionsDisabled || isWaitingForReply}
                         onClick={() => setView("reject")}
                       >
                         <CircleX size={18} /> Reject
@@ -738,8 +751,12 @@ export default function ReportDetail({
                   icon={<CircleX size={20} />}
                   title="Reject"
                   subtitle="Closes the report. The reporter sees the reason."
-                  submitLabel="Reject report"
-                  submitDisabled={!rejectReason}
+                  submitLabel={
+                    isRejecting ? "Rejecting report..." : "Reject report"
+                  }
+                  submitDisabled={
+                    !rejectReason || isWaitingForReply || isRejecting
+                  }
                   onSubmit={submitReject}
                   onClose={closePanel}
                 >
@@ -969,6 +986,37 @@ export default function ReportDetail({
                       </span>
                     </div>
                     <p className="rd-outcome-note">{resolutionNote}</p>
+                    <p className="rd-outcome-closed">
+                      This report is closed. No further actions.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {isRejected && (
+                <div className="rd-outcome">
+                  <h2 className="rd-decision-title">Outcome</h2>
+                  <div className="rd-outcome-box rd-outcome-box--rejected">
+                    <div className="rd-outcome-head">
+                      <StatusPill status="rejected" solid>
+                        Rejected
+                      </StatusPill>
+                      <span className="rd-outcome-meta">
+                        {[rejectedEvent?.at, rejectedEvent?.by]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </div>
+
+                    {rejectionReason && (
+                      <p className="rd-outcome-reason">
+                        <strong>Reason:</strong> {rejectionReasonLabel}
+                      </p>
+                    )}
+                    {rejectionNote && (
+                      <p className="rd-outcome-reject-note">{rejectionNote}</p>
+                    )}
+
                     <p className="rd-outcome-closed">
                       This report is closed. No further actions.
                     </p>
