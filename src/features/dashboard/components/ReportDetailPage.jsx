@@ -10,7 +10,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-import { onAuthStateChanged } from "firebase/auth";
+// import { onAuthStateChanged } from "firebase/auth";
 
 import { useParams } from "react-router";
 import { db, auth } from "../../../firebaseConfig";
@@ -187,6 +187,10 @@ export default function ReportDetailPage() {
 
         const current = snap.data();
 
+        const notificationRef = doc(
+          collection(db, "users", current.reporterID, "notifications"),
+        );
+
         if (current.assignedTo) {
           throw new Error("ALREADY_CLAIMED");
         }
@@ -199,6 +203,14 @@ export default function ReportDetailPage() {
           status: "under_review",
           assignedTo: adminID,
           assignedToName: adminName,
+        });
+
+        transaction.set(notificationRef, {
+          actorID: adminID,
+          reportID: id,
+          action: "report_claimed",
+          isRead: false,
+          createdAt: serverTimestamp(),
         });
 
         transaction.set(historyRef, {
@@ -253,6 +265,10 @@ export default function ReportDetailPage() {
 
         const current = snap.data();
 
+        const notificationRef = doc(
+          collection(db, "users", current.reporterID, "notifications"),
+        );
+
         if (current.assignedTo !== adminID)
           throw new Error("NOT_ASSIGNED_TO_YOU");
 
@@ -265,6 +281,14 @@ export default function ReportDetailPage() {
         transaction.update(reportRef, {
           status: "verified",
           awaitingReply: false,
+        });
+
+        transaction.set(notificationRef, {
+          actorID: adminID,
+          reportID: id,
+          action: "report_verified",
+          isRead: false,
+          createdAt: serverTimestamp(),
         });
 
         transaction.set(historyRef, {
@@ -322,12 +346,24 @@ export default function ReportDetailPage() {
 
         const current = snap.data();
 
+        const notificationRef = doc(
+          collection(db, "users", current.reporterID, "notifications"),
+        );
+
         if (current.assignedTo !== adminID)
           throw new Error("NOT_ASSIGNED_TO_YOU");
         if (current.status !== "verified") throw new Error("NOT_STARTABLE");
 
         transaction.update(reportRef, {
           status: "in_progress",
+        });
+
+        transaction.set(notificationRef, {
+          actorID: adminID,
+          reportID: id,
+          action: "report_in_progress",
+          isRead: false,
+          createdAt: serverTimestamp(),
         });
 
         transaction.set(historyRef, {
@@ -385,6 +421,10 @@ export default function ReportDetailPage() {
 
         const current = snap.data();
 
+        const notificationRef = doc(
+          collection(db, "users", current.reporterID, "notifications"),
+        );
+
         if (current.assignedTo !== adminID)
           throw new Error("NOT_ASSIGNED_TO_YOU");
         if (current.status !== "in_progress") throw new Error("NOT_RESOLVABLE");
@@ -393,6 +433,14 @@ export default function ReportDetailPage() {
           status: "resolved",
           resolutionNote: adminNote,
           resolutionPhotoUrl: resolvePhotoUrl,
+        });
+
+        transaction.set(notificationRef, {
+          actorID: adminID,
+          reportID: id,
+          action: "report_resolved",
+          isRead: false,
+          createdAt: serverTimestamp(),
         });
 
         transaction.set(historyRef, {
@@ -457,6 +505,10 @@ export default function ReportDetailPage() {
 
         const current = snap.data();
 
+        const notificationRef = doc(
+          collection(db, "users", current.reporterID, "notifications"),
+        );
+
         if (current.assignedTo !== adminID)
           throw new Error("NOT_ASSIGNED_TO_YOU");
 
@@ -475,6 +527,13 @@ export default function ReportDetailPage() {
           senderID: adminID,
           senderRole: "admin",
           message: question,
+          createdAt: serverTimestamp(),
+        });
+
+        transaction.set(notificationRef, {
+          actorID: adminID,
+          action: "request_info",
+          isRead: false,
           createdAt: serverTimestamp(),
         });
 
@@ -541,6 +600,10 @@ export default function ReportDetailPage() {
 
         const current = snap.data();
 
+        const notificationRef = doc(
+          collection(db, "users", current.reporterID, "notifications"),
+        );
+
         if (current.assignedTo !== adminID)
           throw new Error("NOT_ASSIGNED_TO_YOU");
 
@@ -554,6 +617,13 @@ export default function ReportDetailPage() {
           status: "rejected",
           rejectionReason: reason,
           rejectionNote: note,
+        });
+
+        transaction.set(notificationRef, {
+          actorID: adminID,
+          action: "report_rejected",
+          isRead: false,
+          createdAt: serverTimestamp(),
         });
 
         transaction.set(historyRef, {

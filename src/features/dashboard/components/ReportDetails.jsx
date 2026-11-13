@@ -857,13 +857,13 @@ export default function ReportDetail({
                   tone="duplicate"
                   icon={<Copy size={20} />}
                   title="Duplicate"
-                  subtitle="Closes this report and links it to the original."
+                  subtitle="Closes this report and mark as duplicate."
                   submitLabel="Mark duplicate"
                   submitDisabled={!duplicateOf}
                   onSubmit={submitDuplicate}
                   onClose={closePanel}
                 >
-                  <fieldset className="rd-fieldset">
+                  {/* <fieldset className="rd-fieldset">
                     <legend className="rd-field-label">
                       Original report <span className="rd-required">*</span>
                     </legend>
@@ -900,7 +900,7 @@ export default function ReportDetail({
                         ))}
                       </div>
                     )}
-                  </fieldset>
+                  </fieldset> */}
                 </DecisionPanel>
               )}
 
