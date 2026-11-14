@@ -1,12 +1,247 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------
+   EcoReport Admin sidebar
+   Direction: comfortable density, serious/precise tone, soft contrast.
+   Deep pine surface (not bright emerald) so the data screens beside it
+   stay the focus; mint is reserved for "you are here" + focus only.
+------------------------------------------------------------------- */
+
+.sidebar {
+  /* Color roles */
+  --sb-bg: #0b3d2e;
+  --sb-text: #d6e8e0;
+  --sb-text-muted: #93b8a9;
+  --sb-text-strong: #ffffff;
+  --sb-hover: rgb(255 255 255 / 0.07);
+  --sb-active: rgb(255 255 255 / 0.11);
+  --sb-border: rgb(255 255 255 / 0.12);
+  --sb-accent: #6fdcae;
+  --sb-accent-subtle: rgb(111 220 174 / 0.16);
+  --sb-focus: #a7f3d0;
+
+  /* Shape + motion */
+  --sb-radius-control: 8px;
+  --sb-radius-pill: 999px;
+  --sb-duration: 150ms;
+
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 250px; /* unchanged so existing page offsets keep working */
+  padding: 24px 16px 16px;
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Brand ------------------------------------------------------------ */
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 24px;
+}
+
+.sidebar__brand-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--sb-radius-control);
+  background: var(--sb-accent-subtle);
+  color: var(--sb-accent);
+}
+
+.sidebar__brand-name {
+  margin: 0;
+  color: var(--sb-text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.sidebar__brand-sub {
+  margin: 2px 0 0;
+  color: var(--sb-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Navigation ------------------------------------------------------- */
+.sidebar__nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar__section-label {
+  margin: 0 0 8px;
+  padding: 0 12px;
+  color: var(--sb-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.sidebar__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Shared row: nav links, logout button, profile link */
+.sidebar__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--sb-radius-control);
+  background: transparent;
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--sb-duration) ease-out,
+    color var(--sb-duration) ease-out;
+}
+
+.sidebar__link:hover {
+  background: var(--sb-hover);
+  color: var(--sb-text-strong);
+}
+
+.sidebar__link:focus-visible {
+  outline: 2px solid var(--sb-focus);
+  outline-offset: -2px;
+}
+
+.sidebar__link.is-active {
+  background: var(--sb-active);
+  color: var(--sb-text-strong);
+}
+
+/* "You are here" marker: one accent, used once */
+.sidebar__link.is-active::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 3px;
+  border-radius: var(--sb-radius-pill);
+  background: var(--sb-accent);
+}
+
+.sidebar__icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  opacity: 0.8;
+  transition: opacity var(--sb-duration) ease-out;
+}
+
+.sidebar__link:hover .sidebar__icon,
+.sidebar__link.is-active .sidebar__icon {
+  opacity: 1;
+}
+
+.sidebar__link.is-active .sidebar__icon {
+  color: var(--sb-accent);
+}
+
+/* Footer: session actions, then identity at the very bottom -------- */
+.sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sb-border);
+}
+
+.sidebar__profile {
+  height: auto;
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 8px 12px;
+}
+
+.sidebar__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--sb-radius-pill);
+  background: var(--sb-accent-subtle);
+  color: var(--sb-accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sidebar__profile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* lets long names/emails truncate instead of overflowing */
+}
+
+.sidebar__profile-name,
+.sidebar__profile-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__profile-name {
+  color: var(--sb-text-strong);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sidebar__profile-email {
+  color: var(--sb-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+/* Kept for any other markup that still uses it */
 .sidebar-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-nav a {
-  border-radius: 5px;
-  padding: 6px 0;
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__link,
+  .sidebar__icon {
+    transition: none;
+  }
 }
