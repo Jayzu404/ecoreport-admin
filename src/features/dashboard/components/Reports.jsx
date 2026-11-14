@@ -44,6 +44,8 @@ const timeAgo = (ts) => {
 
 export default function Reports() {
   const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true); // true until the first snapshot arrives
+  const [error, setError] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("action");
   const [category, setCategory] = useState("all");
@@ -57,9 +59,19 @@ export default function Reports() {
   useEffect(() => {
     // "asc" = oldest first, like the reference queue
     const q = query(collection(db, "reports"), orderBy("createdAt", "asc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setReports(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setReports(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setError(false);
+        setLoading(false);
+      },
+      // second argument = error callback (permissions, network, missing index)
+      () => {
+        setError(true);
+        setLoading(false);
+      },
+    );
     return unsubscribe;
   }, []);
 
@@ -136,14 +148,56 @@ export default function Reports() {
     setCutoff(value === "any" ? null : Date.now() - Number(value) * 86400000);
   };
 
+  const hasFilters =
+    search.trim() !== "" ||
+    category !== "all" ||
+    area !== "all" ||
+    range !== "any";
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategory("all");
+    setArea("all");
+    setRange("any");
+    setCutoff(null);
+  };
+
+  // Which message (if any) replaces the rows. Order matters: most specific cause first.
+  let message = null;
+  if (error) {
+    message = {
+      title: "Couldn't load reports",
+      text: "Check your connection, then refresh the page.",
+    };
+  } else if (reports.length === 0) {
+    message = {
+      title: "No reports yet",
+      text: "New reports will show up here as soon as they're submitted.",
+    };
+  } else if (filtered.length === 0 && hasFilters) {
+    message = {
+      title: "No reports match your filters",
+      text: "Try a different search, or clear the filters.",
+      actionLabel: "Clear filters",
+      onAction: clearFilters,
+    };
+  } else if (filtered.length === 0) {
+    message = {
+      title: "Nothing in this tab",
+      text: "Reports with a matching status will appear here.",
+    };
+  }
+
   return (
     <div className="reports-page">
       {/* ===== PAGE HEADER ===== */}
       <header className="page-head">
         <div>
           <h1>Report/s</h1>
-          <p className="subtitle">
-            {newCount} new · {counts.action} need action
+          <p className="subtitle" aria-live="polite">
+            {loading
+              ? "Loading reports…"
+              : `${newCount} new · ${counts.action} need action`}
           </p>
         </div>
 
@@ -166,7 +220,7 @@ export default function Reports() {
               onClick={() => setTab(t.key)}
             >
               {t.label}
-              <span className="tab-badge">{counts[t.key]}</span>
+              <span className="tab-badge">{loading ? "–" : counts[t.key]}</span>
             </button>
           ))}
         </div>
@@ -224,12 +278,14 @@ export default function Reports() {
             ))}
           </select>
 
-          <span className="count">{filtered.length} results</span>
+          {!loading && !error && (
+            <span className="count">{filtered.length} results</span>
+          )}
         </div>
 
         {/* ===== TABLE ===== */}
         <div className="table-wrap">
-          <table>
+          <table aria-busy={loading}>
             <thead>
               <tr>
                 <th>Report</th>
@@ -256,118 +312,171 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
-                const key = statusKey(r);
-                const s = STATUS[key] ?? {
-                  label: key ?? "Unknown",
-                  tone: "gray",
-                };
-                const needsAttention = key === "submitted";
-                const days = daysSince(r.createdAt);
+              {/* 1. still fetching */}
+              {loading && <SkeletonRows />}
 
-                return (
-                  <tr
-                    key={r.id}
-                    className={needsAttention ? "row unread" : "row"}
-                    onClick={() => navigate(`/dashboard/reports/${r.id}`)}
-                  >
-                    {/* Report: dot + thumbnail + category + ref no. */}
-                    <td className="report-cell">
-                      {needsAttention && <span className="unread-dot" />}
-                      <div className="report">
-                        <img src={r.photoUrl} alt="" />
-                        <div>
-                          <div className="report-title">{r.category}</div>
-                          <div className="ref">{refNo(r)}</div>
+              {/* 2. fetched, and there are rows to show */}
+              {!loading &&
+                !error &&
+                filtered.map((r) => {
+                  const key = statusKey(r);
+                  const s = STATUS[key] ?? {
+                    label: key ?? "Unknown",
+                    tone: "gray",
+                  };
+                  const needsAttention = key === "submitted";
+                  const days = daysSince(r.createdAt);
+
+                  return (
+                    <tr
+                      key={r.id}
+                      className={needsAttention ? "row unread" : "row"}
+                      onClick={() => navigate(`/dashboard/reports/${r.id}`)}
+                    >
+                      {/* Report: dot + thumbnail + category + ref no. */}
+                      <td className="report-cell">
+                        {needsAttention && <span className="unread-dot" />}
+                        <div className="report">
+                          <img src={r.photoUrl} alt="" />
+                          <div>
+                            <div className="report-title">{r.category}</div>
+                            <div className="ref">{refNo(r)}</div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="area" title={r.municipality}>
-                      {r.brgy || "—"}
-                    </td>
+                      <td className="area" title={r.municipality}>
+                        {r.brgy || "—"}
+                      </td>
 
-                    <td>
-                      <span
-                        className={`date ${days >= 7 ? "warn" : ""}`}
-                        title={formatDate(r.createdAt)}
-                      >
-                        <ClockIcon size={16} />
-                        {timeAgo(r.createdAt)}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`reporter ${needsAttention ? "strong" : ""}`}
-                      >
-                        {r.fullName}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`pill ${s.tone} ${needsAttention ? "solid" : ""}`}
-                      >
-                        <span className="pill-dot" />
-                        {s.label}
-                      </span>
-                    </td>
-
-                    <td>
-                      {!r.assignedTo ? (
-                        <span className="unclaimed">Unclaimed</span>
-                      ) : r.assignedTo === ME ? (
-                        <span className="you">
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="14"
-                            height="14"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M5 12l5 5L20 7" />
-                          </svg>
-                          You
+                      <td>
+                        <span
+                          className={`date ${days >= 7 ? "warn" : ""}`}
+                          title={formatDate(r.createdAt)}
+                        >
+                          <ClockIcon size={16} />
+                          {timeAgo(r.createdAt)}
                         </span>
-                      ) : (
-                        <span className="assignee">{r.assignedToName}</span>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="chevron">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="18"
-                        height="18"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M9 6l6 6-6 6" />
-                      </svg>
-                    </td>
-                  </tr>
-                );
-              })}
+                      <td>
+                        <span
+                          className={`reporter ${needsAttention ? "strong" : ""}`}
+                        >
+                          {r.fullName}
+                        </span>
+                      </td>
 
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="empty">
-                    No reports match your filters.
-                  </td>
-                </tr>
-              )}
+                      <td>
+                        <span
+                          className={`pill ${s.tone} ${needsAttention ? "solid" : ""}`}
+                        >
+                          <span className="pill-dot" />
+                          {s.label}
+                        </span>
+                      </td>
+
+                      <td>
+                        {!r.assignedTo ? (
+                          <span className="unclaimed">Unclaimed</span>
+                        ) : r.assignedTo === ME ? (
+                          <span className="you">
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="14"
+                              height="14"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M5 12l5 5L20 7" />
+                            </svg>
+                            You
+                          </span>
+                        ) : (
+                          <span className="assignee">{r.assignedToName}</span>
+                        )}
+                      </td>
+
+                      <td className="chevron">
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="18"
+                          height="18"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M9 6l6 6-6 6" />
+                        </svg>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+              {/* 3. fetched, but nothing to show (error / no reports / no match / empty tab) */}
+              {!loading && message && <TableMessage {...message} />}
             </tbody>
           </table>
         </div>
       </div>
     </div>
+  );
+}
+
+/* Placeholder rows shaped like real rows, so nothing jumps when data lands */
+function SkeletonRows({ count = 6 }) {
+  return Array.from({ length: count }, (_, i) => (
+    <tr key={i} className="row skeleton-row" aria-hidden="true">
+      <td className="report-cell">
+        <div className="report">
+          <span className="skeleton skeleton-thumb" />
+          <div className="skeleton-stack">
+            <span className="skeleton" style={{ width: 120 }} />
+            <span className="skeleton" style={{ width: 88, height: 10 }} />
+          </div>
+        </div>
+      </td>
+      <td>
+        <span className="skeleton" style={{ width: 80 }} />
+      </td>
+      <td>
+        <span className="skeleton" style={{ width: 72 }} />
+      </td>
+      <td>
+        <span className="skeleton" style={{ width: 110 }} />
+      </td>
+      <td>
+        <span className="skeleton skeleton-pill" />
+      </td>
+      <td>
+        <span className="skeleton" style={{ width: 72 }} />
+      </td>
+      <td />
+    </tr>
+  ));
+}
+
+/* One message row for every "nothing to show" case */
+function TableMessage({ title, text, actionLabel, onAction }) {
+  return (
+    <tr>
+      <td colSpan={7} className="empty-state">
+        <div role="status">
+          <p className="empty-title">{title}</p>
+          <p className="empty-text">{text}</p>
+          {onAction && (
+            <button type="button" className="empty-action" onClick={onAction}>
+              {actionLabel}
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
   );
 }
 
