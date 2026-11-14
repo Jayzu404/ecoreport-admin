@@ -691,6 +691,7 @@ export default function ReportDetailPage() {
       name: report.fullName,
       contact: report.contactNumber,
     },
+    location: report.location,
     nearby: [],
     history: history.map((e) => {
       const eventKey = statusKey({ status: e.toStatus });

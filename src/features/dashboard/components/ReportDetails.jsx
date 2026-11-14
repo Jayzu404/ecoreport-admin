@@ -30,6 +30,21 @@ import "./ReportDetails.css";
 
 import { useNavigate } from "react-router";
 
+import { MapContainer, TileLayer, Marker, LayersControl } from "react-leaflet";
+import "leaflet/dist/leaflet.css"; // required, or the map renders broken
+import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+// Vite fix: otherwise the default marker pin image shows up broken
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+
 /* The pipeline is fixed UI, so it lives here instead of in the data. */
 const PIPELINE = [
   { key: "submitted", label: "Submitted" },
@@ -54,8 +69,13 @@ const INFO_SUGGESTIONS = [
 
 const MIN_NOTE = 10;
 
-/* Statuses that sit beside the pipeline: they light up the "Under Review" slot
-   but show their own label and color. */
+/* Leaflet's default marker blue, so the legend dot matches the real pin. */
+const PIN_BLUE = "#2A81CB";
+
+/* Statuses that sit beside the pipeline, right after "Under Review".
+   - need_info / info_requested: inserted as a step, the rest of the pipeline
+     (Verified, In Progress, Resolved) still shows because the report can continue.
+   - rejected / duplicate: the flow ends there (Submitted -> Under Review -> status). */
 const OFF_PIPELINE = ["need_info", "info_requested", "rejected", "duplicate"];
 
 /* "need-info", "Need Info", "need_info" -> "need_info" */
@@ -88,19 +108,18 @@ const UNCLAIMED = ["", "unassigned", "unclaimed"];
       phone (or contact), email,    // full values, shown when contactVisible
       phoneMasked, emailMasked,     // masked values (optional), shown otherwise
     },
-    nearby: [{ id, category, distance: "38 m", ago: "1 mo ago", thumbUrl, status, statusLabel }],
+    location: [124.42, 11.61],      // [longitude, latitude], same order as the reports map
     history: [{ at, status, statusLabel, by, note }]
   }
 
   Other props (all optional):
     position           { index: 4, total: 9 }  -> "4 / 9" in the top bar
     contactVisible     boolean -> swaps masked values for full ones
-    decisionsDisabled  boolean (default true) -> greys out Verify / Request info / Duplicate / Reject
+    decisionsDisabled  boolean (default true) -> greys out Verify / Request info / Reject
     showAdminActions   boolean (default false) -> shows Set In Progress / Resolve below the decision row
 */
 export default function ReportDetail({
   report,
-  map, // any element you want in the map slot (e.g. a react-leaflet <MapContainer>)
   categoryIcon = <Droplet size={22} />,
   position,
   contactVisible = false,
@@ -111,10 +130,8 @@ export default function ReportDetail({
   onClaim,
   onToggleContact,
   onCopyValue,
-  onUseAsOriginal,
   onRequestInfo,
   onReject,
-  onMarkDuplicate,
   onVerify,
   onSetInProgress,
   onResolve,
@@ -123,7 +140,7 @@ export default function ReportDetail({
   isSettingInProgress,
   isResolving,
   isRequestingInfo,
-  conversations,
+  conversations = [],
   adminName,
   isRejecting,
 }) {
@@ -141,7 +158,7 @@ export default function ReportDetail({
     submittedAgo,
     area,
     reporter,
-    nearby = [],
+    location,
     history = [],
     resolutionNote,
     awaitingReply,
@@ -153,7 +170,6 @@ export default function ReportDetail({
   const [rejectReason, setRejectReason] = useState("");
   const [rejectNote, setRejectNote] = useState("");
   const [infoQuestion, setInfoQuestion] = useState("");
-  const [duplicateOf, setDuplicateOf] = useState("");
   const [resolveNote, setResolveNote] = useState("");
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState("");
@@ -165,7 +181,6 @@ export default function ReportDetail({
     setRejectReason("");
     setRejectNote("");
     setInfoQuestion("");
-    setDuplicateOf("");
     setResolveNote("");
     setProofFile(null);
     setProofPreview("");
@@ -202,11 +217,6 @@ export default function ReportDetail({
     if (success) closePanel();
   };
 
-  const submitDuplicate = () => {
-    if (!duplicateOf) return;
-    onMarkDuplicate?.({ originalId: duplicateOf });
-  };
-
   const submitResolve = () => {
     if (resolveNote.trim().length < MIN_NOTE) return;
     onResolve?.({ adminNote: resolveNote.trim(), photoFile: proofFile });
@@ -230,6 +240,8 @@ export default function ReportDetail({
   const isInProgress = statusKey === "in_progress";
   const isResolved = statusKey === "resolved";
   const isRejected = statusKey === "rejected";
+  const isDuplicate = statusKey === "duplicate";
+  const isClosed = isResolved || isRejected || isDuplicate;
   const isNeedingInfo = statusKey === "need_info";
   const isWaitingForReply =
     statusKey === "need_info" && awaitingReply !== false;
@@ -239,9 +251,15 @@ export default function ReportDetail({
     REJECT_REASONS.find((r) => r.value === rejectionReason)?.label ??
     rejectionReason;
   const isOffPipeline = OFF_PIPELINE.includes(statusKey);
-  const currentStep = PIPELINE.findIndex(
-    (s) => s.key === (isOffPipeline ? "under_review" : statusKey),
-  );
+  const branchStep = { key: statusKey, label: statusLabel ?? statusKey };
+  const steps = !isOffPipeline
+    ? PIPELINE
+    : isRejected || isDuplicate
+      ? [PIPELINE[0], PIPELINE[1], branchStep] // ends here
+      : [PIPELINE[0], PIPELINE[1], branchStep, ...PIPELINE.slice(2)]; // need info: can still continue
+  const currentStep = isOffPipeline
+    ? 2
+    : steps.findIndex((s) => s.key === statusKey);
   const isUnclaimed = UNCLAIMED.includes(
     String(assignedTo ?? "")
       .trim()
@@ -346,7 +364,7 @@ export default function ReportDetail({
             <span className="rd-meta-item">
               <Calendar size={16} /> Submitted {submittedWhen}
             </span>
-            {openLabel && (
+            {openLabel && !isClosed && (
               <span className="rd-open-pill">
                 <Clock size={14} /> {openLabel}
               </span>
@@ -355,16 +373,20 @@ export default function ReportDetail({
         </header>
 
         {/* ---------- Pipeline stepper ---------- */}
-        <nav className="rd-card rd-stepper" aria-label="Report progress">
-          {PIPELINE.map((step, i) => {
+        <nav
+          className="rd-card rd-stepper"
+          aria-label="Report progress"
+          style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}
+        >
+          {steps.map((step, i) => {
             const isCurrent = i === currentStep;
             const state = isCurrent
               ? "current"
               : i < currentStep
                 ? "done"
                 : "todo";
-            const label = isCurrent && isOffPipeline ? statusLabel : step.label;
-            const at = stepAt(isCurrent ? statusKey : step.key);
+            const label = step.label;
+            const at = stepAt(step.key);
             return (
               <div key={step.key} className="rd-step-wrap">
                 <div
@@ -386,7 +408,7 @@ export default function ReportDetail({
                     <span className="rd-step-at">{at || "—"}</span>
                   </span>
                 </div>
-                {i < PIPELINE.length - 1 && (
+                {i < steps.length - 1 && (
                   <span
                     className={`rd-step-line ${i < currentStep ? "rd-step-line--done" : ""}`}
                   />
@@ -495,7 +517,9 @@ export default function ReportDetail({
                 <span className="rd-card-aside">{area}</span>
               </div>
 
-              <div className="rd-map">{map}</div>
+              <div className="rd-map">
+                <ReportLocationMap key={id} location={location} />
+              </div>
 
               <div className="rd-landmark">
                 <Landmark size={18} />
@@ -509,57 +533,12 @@ export default function ReportDetail({
 
               <div className="rd-legend">
                 <span>
-                  <i className="rd-legend-dot rd-legend-dot--pin" /> Reporter's
+                  <i
+                    className="rd-legend-dot rd-legend-dot--pin"
+                    style={{ background: PIN_BLUE }}
+                  /> Reporter's
                   pin
                 </span>
-                <span>
-                  <i className="rd-legend-dot rd-legend-dot--nearby" /> Nearby
-                  reports
-                </span>
-              </div>
-
-              <div className="rd-nearby">
-                <div className="rd-card-head rd-card-head--plain">
-                  <h3 className="rd-nearby-title">Nearby reports</h3>
-                  <span className="rd-card-aside">
-                    {nearby.length} within ~100 m · check for duplicates
-                  </span>
-                </div>
-
-                {nearby.length === 0 ? (
-                  <p className="rd-muted">No other reports within ~100 m.</p>
-                ) : (
-                  <ul className="rd-nearby-list">
-                    {nearby.map((n) => (
-                      <li key={n.id} className="rd-nearby-item">
-                        <img
-                          className="rd-nearby-thumb"
-                          src={n.thumbUrl}
-                          alt=""
-                        />
-                        <div className="rd-nearby-info">
-                          <p className="rd-nearby-id">
-                            <span className="rd-mono">{n.id}</span>
-                            <span className="rd-muted">{n.distance}</span>
-                          </p>
-                          <p className="rd-nearby-sub">
-                            {n.category} · {n.ago}
-                          </p>
-                        </div>
-                        <StatusPill status={n.status}>
-                          {n.statusLabel}
-                        </StatusPill>
-                        <button
-                          type="button"
-                          className="rd-link-btn"
-                          onClick={() => onUseAsOriginal?.(n.id)}
-                        >
-                          Use as original
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
             </section>
 
@@ -598,7 +577,7 @@ export default function ReportDetail({
           {/* ---------- Right column ---------- */}
           <div className="rd-col">
             <section className="rd-card rd-actions-card">
-              {isUnclaimed && (
+              {isUnclaimed && !isClosed && (
                 <div className="rd-claim">
                   <p className="rd-claim-title">
                     <UserPlus size={19} /> Unclaimed
@@ -625,8 +604,7 @@ export default function ReportDetail({
               {view === "decision" &&
                 !isVerified &&
                 !isInProgress &&
-                !isResolved &&
-                !isRejected && (
+                !isClosed && (
                   <div className="rd-decision">
                     <div className="rd-decision-head">
                       <h2 className="rd-decision-title">Next step</h2>
@@ -666,7 +644,11 @@ export default function ReportDetail({
                       {isVerifying ? "Verifying..." : "Verify"}
                     </button>
 
-                    <div className="rd-secondary">
+                    {/* Two buttons now, so the row is forced to two equal columns. */}
+                    <div
+                      className="rd-secondary"
+                      style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+                    >
                       <button
                         type="button"
                         className="rd-sec-btn rd-sec-btn--info"
@@ -677,14 +659,6 @@ export default function ReportDetail({
                         {isRequestingInfo
                           ? "Requesting info..."
                           : "Request info"}
-                      </button>
-                      <button
-                        type="button"
-                        className="rd-sec-btn rd-sec-btn--dup"
-                        disabled={decisionsDisabled}
-                        onClick={() => setView("duplicate")}
-                      >
-                        <Copy size={18} /> Duplicate
                       </button>
                       <button
                         type="button"
@@ -852,58 +826,6 @@ export default function ReportDetail({
                 </DecisionPanel>
               )}
 
-              {view === "duplicate" && (
-                <DecisionPanel
-                  tone="duplicate"
-                  icon={<Copy size={20} />}
-                  title="Duplicate"
-                  subtitle="Closes this report and mark as duplicate."
-                  submitLabel="Mark duplicate"
-                  submitDisabled={!duplicateOf}
-                  onSubmit={submitDuplicate}
-                  onClose={closePanel}
-                >
-                  {/* <fieldset className="rd-fieldset">
-                    <legend className="rd-field-label">
-                      Original report <span className="rd-required">*</span>
-                    </legend>
-
-                    {nearby.length === 0 ? (
-                      <p className="rd-empty-note">
-                        No other reports within 100 m. A duplicate must share
-                        the same location as its original.
-                      </p>
-                    ) : (
-                      <div className="rd-choices rd-choices--list">
-                        {nearby.map((n) => (
-                          <label
-                            key={n.id}
-                            className={`rd-choice ${
-                              duplicateOf === n.id ? "rd-choice--selected" : ""
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="duplicate-of"
-                              value={n.id}
-                              checked={duplicateOf === n.id}
-                              onChange={() => setDuplicateOf(n.id)}
-                            />
-                            <span className="rd-choice-radio" />
-                            <span className="rd-choice-text">
-                              <span className="rd-mono">{n.id}</span>
-                              <span className="rd-muted">
-                                {n.category} · {n.distance} · {n.ago}
-                              </span>
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </fieldset> */}
-                </DecisionPanel>
-              )}
-
               {view === "resolve" && isInProgress && (
                 <DecisionPanel
                   tone="resolve"
@@ -1017,6 +939,21 @@ export default function ReportDetail({
                       <p className="rd-outcome-reject-note">{rejectionNote}</p>
                     )}
 
+                    <p className="rd-outcome-closed">
+                      This report is closed. No further actions.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {isDuplicate && (
+                <div className="rd-outcome">
+                  <h2 className="rd-decision-title">Outcome</h2>
+                  <div className="rd-outcome-box">
+                    <div className="rd-outcome-head">
+                      <StatusPill status="duplicate" solid>
+                        {statusLabel}
+                      </StatusPill>
+                    </div>
                     <p className="rd-outcome-closed">
                       This report is closed. No further actions.
                     </p>
@@ -1158,5 +1095,57 @@ function DecisionPanel({
         </div>
       </div>
     </div>
+  );
+}
+
+/* Single-report map: centered on the reporter's pin. `location` is
+   [longitude, latitude], same order the reports map uses. */
+function ReportLocationMap({ location }) {
+  const valid =
+    Array.isArray(location) &&
+    location.length === 2 &&
+    !isNaN(Number(location[0])) &&
+    !isNaN(Number(location[1]));
+
+  if (!valid) return <p className="rd-muted">No location available.</p>;
+
+  const position = [Number(location[1]), Number(location[0])]; // Leaflet wants [lat, lng]
+
+  return (
+    <MapContainer
+      center={position}
+      zoom={17}
+      style={{ height: "100%", minHeight: "320px", width: "100%" }}
+    >
+      <LayersControl position="topright">
+        <LayersControl.BaseLayer checked name="Street">
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="Satellite">
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution="Tiles &copy; Esri"
+            maxNativeZoom={17}
+            maxZoom={19}
+          />
+        </LayersControl.BaseLayer>
+
+        {/* No `checked` prop => off by default */}
+        <LayersControl.Overlay name="Labels">
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            attribution="Labels &copy; Esri"
+            zIndex={10}
+            maxZoom={19}
+          />
+        </LayersControl.Overlay>
+      </LayersControl>
+
+      <Marker position={position} />
+    </MapContainer>
   );
 }
