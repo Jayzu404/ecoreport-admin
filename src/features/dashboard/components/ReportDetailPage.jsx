@@ -532,6 +532,7 @@ export default function ReportDetailPage() {
 
         transaction.set(notificationRef, {
           actorID: adminID,
+          reportID: id,
           action: "request_info",
           isRead: false,
           createdAt: serverTimestamp(),
@@ -621,6 +622,7 @@ export default function ReportDetailPage() {
 
         transaction.set(notificationRef, {
           actorID: adminID,
+          reportID: id,
           action: "report_rejected",
           isRead: false,
           createdAt: serverTimestamp(),
