@@ -1,35 +1,44 @@
-@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap");
 
-/* ---------- Design tokens (change colors here, everything follows) ---------- */
+/* ---------- Design tokens (shared values mirror Reports.css) ---------- */
 .analytics {
-  --bg: #ffffff;
-  --card-border: #e6e9e4;
-  --text: #17201b;
-  --muted: #6b7570;
-  --faint: #9aa39e;
-  --track: #eef0ec;
-  --bar: #2f7d57;          /* normal bar */
-  --bar-top: #1d5a40;      /* #1 bar is darker */
+  /* color */
+  --card-border: #ececea;
+  --text: #111827;
+  --muted: #6b7280;
+  --faint: #9ca3af;
+  --track: #f1f1ef;
+  --bar: #1f7a5a;          /* normal bar (same green as the Reports active tab) */
+  --bar-top: #145a42;      /* #1 bar is darker */
   --badge-bg: #e4f1e8;     /* top-3 rank badge */
   --badge-text: #1f5c3f;
-  --pill-bg: #eef0ec;
+  --pill-bg: #f3f4f6;
+
+  /* type scale */
+  --fs-title: 28px;
+  --fs-body: 14px;
+  --fs-small: 12px;
+
+  /* shape */
+  --radius-card: 14px;
 
   font-family: "Public Sans", system-ui, sans-serif;
   color: var(--text);
-  background: var(--bg);
-  padding: 48px 50px 64px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
 }
 
 .analytics__title {
   margin: 0;
-  font-size: 36px;
-  font-weight: 800;
+  font-size: var(--fs-title);
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .analytics__subtitle {
-  margin: 12px 0 0;
-  font-size: 17px;
+  margin: 6px 0 0;
+  font-size: var(--fs-body);
   color: var(--muted);
 }
 
@@ -37,47 +46,47 @@
 .stats {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 18px;
-  margin-top: 40px;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .stat-card {
   border: 1px solid var(--card-border);
-  border-radius: 24px;
-  padding: 24px 24px 22px;
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
   background: #fff;
 }
 
 .stat-card__label {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .stat-card__value {
-  margin: 8px 0 4px;
-  font-size: 48px;
+  margin: 6px 0 2px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
 .stat-card__note {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--muted);
 }
 
 /* ---------- Ranked panels ---------- */
 .panels {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-top: 24px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .panel {
   border: 1px solid var(--card-border);
-  border-radius: 28px;
-  padding: 28px 30px 20px;
+  border-radius: var(--radius-card);
+  padding: 20px 22px 12px;
   background: #fff;
 }
 
@@ -86,18 +95,18 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .panel__title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .panel__sub {
-  margin: 4px 0 0;
-  font-size: 15px;
+  margin: 2px 0 0;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -105,11 +114,11 @@
   flex-shrink: 0;
   background: var(--pill-bg);
   border-radius: 999px;
-  padding: 7px 14px;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 13px;
+  padding: 4px 10px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: var(--fs-small);
   font-weight: 500;
-  color: #3d4640;
+  color: #4b5563;
 }
 
 /* ---------- One ranked row ---------- */
@@ -121,20 +130,20 @@
 
 .rank-row {
   display: grid;
-  grid-template-columns: 32px 1fr;
-  column-gap: 14px;
+  grid-template-columns: 28px 1fr;
+  column-gap: 12px;
   align-items: start;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .rank-row__badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: grid;
   place-items: center;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 13px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: var(--fs-small);
   color: var(--faint);
 }
 
@@ -148,25 +157,25 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 17px;
+  font-size: var(--fs-body);
   font-weight: 500;
 }
 
 .rank-row__count {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .rank-row__percent {
-  margin-left: 8px;
-  font-size: 15px;
+  margin-left: 6px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--faint);
 }
 
 .rank-row__track {
-  margin-top: 8px;
-  height: 8px;
+  margin-top: 6px;
+  height: 6px;
   border-radius: 999px;
   background: var(--track);
   overflow: hidden;
@@ -183,18 +192,19 @@
 }
 
 .panel__empty {
-  margin: 8px 0 16px;
+  margin: 4px 0 12px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--fs-body);
 }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .stats { grid-template-columns: repeat(3, 1fr); }
+  .panels { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 860px) {
-  .analytics { padding: 32px 20px 48px; }
+  .analytics { padding: 24px 16px 40px; }
   .panels { grid-template-columns: 1fr; }
   .stats { grid-template-columns: repeat(2, 1fr); }
 }

@@ -1,10 +1,5 @@
 import "./Analytics.css";
 
-/* ------------------------------------------------------------------
-   Small helper: count how many reports fall under each label,
-   then sort from most to least.
-   e.g. [{category:"A"},{category:"A"},{category:"B"}] -> [{label:"A",count:2},{label:"B",count:1}]
-------------------------------------------------------------------- */
 function tally(reports, field) {
   const counts = {};
   reports.forEach((r) => {
@@ -78,11 +73,6 @@ function RankedPanel({ title, subtitle, items, total }) {
   );
 }
 
-/* ------------------------------------------------------------------
-   The page. Pass in your reports array from Firestore:
-   <Analytics reports={reports} />
-   Each report needs: status, category, barangay
-------------------------------------------------------------------- */
 export default function Analytics({ reports = [] }) {
   const total = reports.length;
   const countStatus = (s) => reports.filter((r) => r.status === s).length;
