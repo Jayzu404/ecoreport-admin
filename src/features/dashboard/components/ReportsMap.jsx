@@ -5,7 +5,6 @@ import {
   TileLayer,
   Marker,
   LayersControl,
-  LayerGroup,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css"; // required, or the map renders broken
 import L from "leaflet";
@@ -51,29 +50,24 @@ export default function ReportsMap({ reports }) {
           />
         </LayersControl.BaseLayer>
 
-        <LayersControl.Overlay checked name="Labels">
-          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" />
-        </LayersControl.Overlay>
-
-        {/* <LayersControl.BaseLayer name="Satellite">
+        <LayersControl.BaseLayer name="Satellite">
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution="Tiles &copy; Esri"
             maxNativeZoom={17}
-            maxZoom={20}
+            maxZoom={19}
           />
-        </LayersControl.BaseLayer> */}
-
-        <LayersControl.BaseLayer name="Satellite">
-          <LayerGroup>
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              attribution="Tiles &copy; Esri"
-              maxNativeZoom={17}
-              maxZoom={19}
-            />
-          </LayerGroup>
         </LayersControl.BaseLayer>
+
+        {/* No `checked` prop => off by default */}
+        <LayersControl.Overlay name="Labels">
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            attribution="Labels &copy; Esri"
+            zIndex={10} // keeps labels above whichever base layer is active
+            maxZoom={19}
+          />
+        </LayersControl.Overlay>
       </LayersControl>
 
       {withLocation.map((r) => (
@@ -81,7 +75,7 @@ export default function ReportsMap({ reports }) {
           <ReportPopup
             report={r}
             onOpen={() => navigate(`/dashboard/reports/${r.id}`)}
-          />{" "}
+          />
         </Marker>
       ))}
     </MapContainer>
