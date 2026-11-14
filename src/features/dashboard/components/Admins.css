@@ -1,0 +1,243 @@
+.admin-accounts {
+  --aa-bg: #f6f6f6;
+  --aa-surface: #ffffff;
+  --aa-head-bg: #f9fafb;
+  --aa-border: #e5e7eb;
+  --aa-divider: #f1f2f4;
+  --aa-text: #111827;
+  --aa-muted: #6b7280;
+  --aa-body-muted: #374151;
+  --aa-badge-bg: #eef0f3;
+  --aa-badge-text: #4b5563;
+  --aa-danger: #b91c1c;
+  --aa-danger-bg: #fef2f2;
+  --aa-danger-border: #fecaca;
+  --aa-skeleton: #eceef1;
+  --aa-skeleton-shine: #f6f7f9;
+
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 48px 54px;
+  background: var(--aa-bg);
+  color: var(--aa-text);
+  font-family: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+.admin-accounts *,
+.admin-accounts *::before,
+.admin-accounts *::after {
+  box-sizing: border-box;
+}
+
+.admin-accounts__header {
+  margin-bottom: 28px;
+}
+
+.admin-accounts__title {
+  margin: 0 0 12px;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.admin-accounts__subtitle {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--aa-muted);
+}
+
+/* ---- Table ---- */
+
+.admin-table {
+  background: var(--aa-surface);
+  border: 1px solid var(--aa-border);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.admin-table__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 2fr) minmax(0, 1.5fr);
+  align-items: center;
+  column-gap: 16px;
+  padding: 0 30px;
+  min-height: 68px;
+  border-bottom: 1px solid var(--aa-divider);
+}
+
+.admin-table__row:last-child {
+  border-bottom: 0;
+}
+
+.admin-table__row--head {
+  min-height: 50px;
+  background: var(--aa-head-bg);
+  border-bottom: 1px solid var(--aa-border);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--aa-muted);
+}
+
+.admin-table__name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-table__name-text {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-table__badge {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--aa-badge-bg);
+  color: var(--aa-badge-text);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.admin-table__muted {
+  font-size: 1rem;
+  color: var(--aa-body-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Loading skeleton ---- */
+
+.skeleton {
+  display: block;
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(
+    90deg,
+    var(--aa-skeleton) 25%,
+    var(--aa-skeleton-shine) 50%,
+    var(--aa-skeleton) 75%
+  );
+  background-size: 200% 100%;
+  animation: admin-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton--name {
+  width: 55%;
+}
+
+.skeleton--email {
+  width: 70%;
+}
+
+.skeleton--date {
+  width: 45%;
+}
+
+@keyframes admin-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Empty / error panel ---- */
+
+.admin-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 24px;
+  text-align: center;
+  background: var(--aa-surface);
+  border: 1px solid var(--aa-border);
+  border-radius: 24px;
+}
+
+.admin-state__title {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.admin-state__text {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 0.9375rem;
+  color: var(--aa-muted);
+}
+
+.admin-state--error {
+  background: var(--aa-danger-bg);
+  border-color: var(--aa-danger-border);
+}
+
+.admin-state--error .admin-state__title {
+  color: var(--aa-danger);
+}
+
+.admin-state__button {
+  margin-top: 20px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--aa-text);
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-state__button:hover {
+  background: #1f2937;
+}
+
+.admin-state__button:focus-visible {
+  outline: 2px solid var(--aa-text);
+  outline-offset: 2px;
+}
+
+/* ---- Small screens ---- */
+
+@media (max-width: 720px) {
+  .admin-accounts {
+    padding: 28px 16px;
+  }
+
+  .admin-table {
+    overflow-x: auto;
+  }
+
+  .admin-table__row {
+    min-width: 640px;
+    padding: 0 20px;
+  }
+}
