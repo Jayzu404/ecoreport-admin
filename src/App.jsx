@@ -5,6 +5,7 @@ import AnalyticPage from "./features/dashboard/components/AnalyticPage";
 import Reports from "./features/dashboard/components/Reports";
 import ReportDetailPage from "./features/dashboard/components/ReportDetailPage";
 import ReportsMapView from "./features/dashboard/components/ReportsMapView";
+import Admins from "./features/dashboard/components/Admins";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./features/auth/Login";
 import Signup from "./features/auth/Signup";
@@ -28,6 +29,7 @@ const App = () => {
             <Route path="analytics" element={<AnalyticPage />} />
             <Route path="reports/:id" element={<ReportDetailPage />} />
             <Route path="reports-map" element={<ReportsMapView />} />
+            <Route path="admins" element={<Admins />} />
           </Route>
         </Route>
       </Routes>
