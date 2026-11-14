@@ -1,12 +1,13 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import AuthLoading from "./AuthLoading";
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
   // Wait until Firebase checks authentication
   if (loading) {
-    return <p>Checking authentication...</p>;
+    return <AuthLoading />;
   }
 
   // Redirect unauthenticated users
@@ -18,4 +19,4 @@ const ProtectedRoute = () => {
   return <Outlet />;
 };
 
-export default ProtectedRoute;  
+export default ProtectedRoute;

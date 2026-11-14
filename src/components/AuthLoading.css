@@ -1,0 +1,64 @@
+.auth-check {
+  /* Same values as the admin pages' tokens. Move to :root if you share them. */
+  --ac-bg: #f6f6f6;
+  --ac-ink: #111827;
+  --ac-text: #4b5563;
+  --ac-track: #d9dce1;
+  --ac-space: 14px;
+  --ac-spinner-size: 28px;
+  --ac-spinner-stroke: 2px;
+  --ac-delay: 250ms;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ac-space);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--ac-bg);
+  color: var(--ac-text);
+  font-family: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+
+  /* Stay invisible for the first moments so a fast check never flashes. */
+  opacity: 0;
+  animation: auth-check-in 200ms ease-out var(--ac-delay) forwards;
+}
+
+.auth-check__spinner {
+  width: var(--ac-spinner-size);
+  height: var(--ac-spinner-size);
+  border: var(--ac-spinner-stroke) solid var(--ac-track);
+  border-top-color: var(--ac-ink);
+  border-radius: 50%;
+  animation: auth-check-spin 800ms linear infinite;
+}
+
+.auth-check__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+@keyframes auth-check-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes auth-check-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-check {
+    animation-duration: 1ms; /* keep the delay, skip the fade */
+  }
+
+  .auth-check__spinner {
+    display: none; /* the text alone carries the status */
+  }
+} 
