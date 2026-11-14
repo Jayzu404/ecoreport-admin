@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 import { signOut } from "firebase/auth";
 import { db, auth } from "../../../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-
-import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
 
@@ -29,64 +27,54 @@ const Icon = ({ children }) => (
   </svg>
 );
 
-const NAV_SECTIONS = [
+const NAV_ITEMS = [
   {
-    label: "Monitor",
-    items: [
-      {
-        to: "/dashboard",
-        label: "Reports",
-        end: true,
-        icon: (
-          <>
-            <path d="M16 13v2.2l1.6 1" />
-            <path d="M3 12h3.458" />
-            <path d="M3 19h3.832" />
-            <path d="M3 5h18" />
-            <circle cx="16" cy="15" r="6" />
-          </>
-        ),
-      },
-      {
-        to: "/dashboard/analytics",
-        label: "Analytics",
-        icon: (
-          <>
-            <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-            <path d="M7 16c.5-2 1.5-7 4-7 2 0 2 3 4 3 2.5 0 4.5-5 5-7" />
-          </>
-        ),
-      },
-      {
-        to: "/dashboard/reports-map",
-        label: "Mapview",
-        icon: (
-          <>
-            <path d="M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 01-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0112 0" />
-            <path d="M4.474 15h-.197a1 1 0 00-.969.753l-1.097 4.35a1.5 1.5 0 001.444 1.898L20.344 22a1.5 1.5 0 001.446-1.897l-1.098-4.35a1 1 0 00-.969-.753h-.197" />
-            <circle cx="12" cy="8" r="2" />
-          </>
-        ),
-      },
-    ],
+    to: "/dashboard",
+    label: "Reports",
+    end: true,
+    icon: (
+      <>
+        <path d="M16 13v2.2l1.6 1" />
+        <path d="M3 12h3.458" />
+        <path d="M3 19h3.832" />
+        <path d="M3 5h18" />
+        <circle cx="16" cy="15" r="6" />
+      </>
+    ),
   },
   {
-    label: "Manage",
-    items: [
-      {
-        // TODO: confirm this route once the Admins page exists.
-        to: "/dashboard/admins",
-        label: "Admins",
-        icon: (
-          <>
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </>
-        ),
-      },
-    ],
+    to: "/dashboard/analytics",
+    label: "Analytics",
+    icon: (
+      <>
+        <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+        <path d="M7 16c.5-2 1.5-7 4-7 2 0 2 3 4 3 2.5 0 4.5-5 5-7" />
+      </>
+    ),
+  },
+  {
+    to: "/dashboard/reports-map",
+    label: "Mapview",
+    icon: (
+      <>
+        <path d="M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 01-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0112 0" />
+        <path d="M4.474 15h-.197a1 1 0 00-.969.753l-1.097 4.35a1.5 1.5 0 001.444 1.898L20.344 22a1.5 1.5 0 001.446-1.897l-1.098-4.35a1 1 0 00-.969-.753h-.197" />
+        <circle cx="12" cy="8" r="2" />
+      </>
+    ),
+  },
+  {
+    // TODO: confirm this route once the Admins page exists.
+    to: "/dashboard/admins",
+    label: "Admins",
+    icon: (
+      <>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </>
+    ),
   },
 ];
 
@@ -94,15 +82,14 @@ const linkClass = ({ isActive }) =>
   isActive ? "sidebar__link is-active" : "sidebar__link";
 
 const getInitials = (adminName) => {
-  console.log(adminName);
-  if (!adminName) return;
-  adminName
+  if (!adminName) return "";
+  return adminName
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0].toUpperCase())
     .join("");
-}   
+};
 
 /* ---------- Component ---------- */
 
@@ -113,14 +100,14 @@ const Sidebar = () => {
   useEffect(() => {
     const getAdmin = async () => {
       try {
-        const admin = auth.currentUser;
+        const currentAdmin = auth.currentUser;
 
-        if (!admin) {
+        if (!currentAdmin) {
           throw new Error("ADMIN_NOT_FOUND");
         }
 
-        const adminID = admin.uid;
-        const adminEmail = admin.email;
+        const adminID = currentAdmin.uid;
+        const adminEmail = currentAdmin.email;
 
         const userRef = doc(db, "users", adminID);
         const userSnapshot = await getDoc(userRef);
@@ -130,8 +117,6 @@ const Sidebar = () => {
         }
 
         const adminProfile = userSnapshot.data();
-
-        console.log(adminProfile.fullName);
 
         setAdmin({ name: adminProfile.fullName, email: adminEmail });
       } catch (error) {
@@ -194,21 +179,16 @@ const Sidebar = () => {
       </div>
 
       <nav className="sidebar__nav" aria-label="Main">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label}>
-            <h2 className="sidebar__section-label">{section.label}</h2>
-            <ul className="sidebar__list">
-              {section.items.map(({ to, label, end, icon }) => (
-                <li key={to}>
-                  <NavLink to={to} end={end} className={linkClass}>
-                    <Icon>{icon}</Icon>
-                    {label}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <ul className="sidebar__list">
+          {NAV_ITEMS.map(({ to, label, end, icon }) => (
+            <li key={to}>
+              <NavLink to={to} end={end} className={linkClass}>
+                <Icon>{icon}</Icon>
+                {label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       </nav>
 
       <div className="sidebar__footer">
@@ -227,16 +207,14 @@ const Sidebar = () => {
         <NavLink
           to="/dashboard/account"
           className={(state) => `${linkClass(state)} sidebar__profile`}
-          aria-label={`Account profile: ${admin.name}`}
+          aria-label={`Account profile: ${admin.name ?? ""}`}
         >
           <span className="sidebar__avatar" aria-hidden="true">
             {Object.keys(admin).length === 0 ? "..." : getInitials(admin.name)}
           </span>
           <span className="sidebar__profile-text">
             <span className="sidebar__profile-name">{admin.name}</span>
-            <span className="sidebar__profile-email">
-              {admin.email}
-            </span>
+            <span className="sidebar__profile-email">{admin.email}</span>
           </span>
         </NavLink>
       </div>
